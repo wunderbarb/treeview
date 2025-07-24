@@ -1,0 +1,17 @@
+# macOS junk
+.DS_Store
+**/.DS_Store
+
+# VSCode
+.vscode/
+
+# IntelliJ
+.idea/
+*.iml
+out/
+.run/
+
+# Go test coverage reports
+coverage/
+*.out
+coverage.html
