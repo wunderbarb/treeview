@@ -94,7 +94,7 @@ Demonstrates viewport-aware rendering for handling large tree structures\. Solve
 **[File Browser](examples/intermediate/04-file-browser/)**  
 Complete, terminal file browser application built with TreeView and Bubble Tea.
 
-<img src="https://vhs.charm.sh/vhs-6O3mmq9mImLCcoU6xZEeao.gif" alt="Demo" height="400">
+<img src="https://vhs.charm.sh/vhs-5XfivVFWrVQQODOA3d6ysd.gif" alt="Demo" height="400">
 
 ## Contributing
 

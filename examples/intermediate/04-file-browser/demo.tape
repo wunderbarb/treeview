@@ -3,8 +3,8 @@ Output demo.gif
 Set Framerate 10
 Set Shell zsh
 Set FontSize 32
-Set Width 2000
-Set Height 800
+Set Width 2200
+Set Height 1200
 
 Type "go run main.go"
 Sleep 1s
@@ -18,20 +18,54 @@ Type "h"
 Sleep 2s
 Type "h"
 Sleep 2s
-Down 1
-Sleep 1s
-Down 1
-Sleep 1s
-Down 1
-Sleep 1s
-Down 1
-Sleep 1s
-Down 1
-Sleep 1s
-Down 1
-Sleep 1s
-Down 1
-Sleep 1s
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+Type "]"
+Sleep 250ms
+
+Sleep 5s
 Enter
 Sleep 2s
 

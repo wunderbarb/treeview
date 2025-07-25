@@ -61,6 +61,10 @@ type KeyMap struct {
 	Toggle   []string
 	Reset    []string
 
+	// Multi-focus keys
+	ExtendUp   []string
+	ExtendDown []string
+
 	// Search keys
 	SearchStart  []string
 	SearchAccept []string
@@ -77,6 +81,10 @@ func DefaultKeyMap() KeyMap {
 		Down:   []string{"down"},
 		Toggle: []string{"right", "left"},
 		Reset:  []string{"ctrl+r"},
+
+		// Multi-focus
+		ExtendUp:   []string{"shift+up"},
+		ExtendDown: []string{"shift+down"},
 
 		// Search
 		SearchStart:  []string{"enter"},
@@ -243,6 +251,12 @@ func (m *TuiTreeModel[T]) handleKeypress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case slices.Contains(m.keyMap.Down, key):
 		m.NavigateDown()
 		return m, nil
+	case slices.Contains(m.keyMap.ExtendUp, key):
+		m.ExtendFocusUp()
+		return m, nil
+	case slices.Contains(m.keyMap.ExtendDown, key):
+		m.ExtendFocusDown()
+		return m, nil
 	case slices.Contains(m.keyMap.Expand, key):
 		m.Expand()
 		return m, nil
@@ -279,25 +293,59 @@ func (m *TuiTreeModel[T]) NavigateDown() {
 	})
 }
 
-// Toggle expands or collapses the currently focused node.
+// ExtendFocusUp extends the multi-focus selection upward by one node.
+func (m *TuiTreeModel[T]) ExtendFocusUp() {
+	m.execWithNavigationTimeout(func(ctx context.Context) error {
+		_, err := m.MoveExtend(ctx, -1)
+		return err
+	})
+}
+
+// ExtendFocusDown extends the multi-focus selection downward by one node.
+func (m *TuiTreeModel[T]) ExtendFocusDown() {
+	m.execWithNavigationTimeout(func(ctx context.Context) error {
+		_, err := m.MoveExtend(ctx, 1)
+		return err
+	})
+}
+
+// Toggle expands or collapses all currently focused nodes.
 func (m *TuiTreeModel[T]) Toggle() {
-	if node := m.GetFocusedNode(); node != nil {
-		node.Toggle()
-	}
+	m.execWithNavigationTimeout(func(ctx context.Context) error {
+		for info, err := range m.AllFocused(ctx) {
+			if err != nil {
+				return err
+			}
+			info.Node.Toggle()
+		}
+		return nil
+	})
 }
 
-// Expand expands the currently focused node to show its children.
+// Expand expands all currently focused nodes to show their children.
 func (m *TuiTreeModel[T]) Expand() {
-	if node := m.GetFocusedNode(); node != nil {
-		node.Expand()
-	}
+	m.execWithNavigationTimeout(func(ctx context.Context) error {
+		for info, err := range m.AllFocused(ctx) {
+			if err != nil {
+				return err
+			}
+			info.Node.Expand()
+		}
+		return nil
+	})
 }
 
-// Collapse collapses the currently focused node to hide its children.
+// Collapse collapses all currently focused nodes to hide their children.
 func (m *TuiTreeModel[T]) Collapse() {
-	if node := m.GetFocusedNode(); node != nil {
-		node.Collapse()
-	}
+	m.execWithNavigationTimeout(func(ctx context.Context) error {
+		for info, err := range m.AllFocused(ctx) {
+			if err != nil {
+				return err
+			}
+			info.Node.Collapse()
+		}
+		return nil
+	})
 }
 
 // BeginSearch switches the model into search mode and clears previous term.
@@ -366,6 +414,8 @@ func (m *TuiTreeModel[T]) NavBar() string {
 	for _, item := range []string{
 		m.addNavItem(m.keyMap.Up, "Up"),
 		m.addNavItem(m.keyMap.Down, "Down"),
+		m.addNavItem(m.keyMap.ExtendUp, "ExtendUp"),
+		m.addNavItem(m.keyMap.ExtendDown, "ExtendDown"),
 		m.addNavItem(m.keyMap.Expand, "Expand"),
 		m.addNavItem(m.keyMap.Collapse, "Collapse"),
 		m.addNavItem(m.keyMap.Toggle, "Toggle"),
