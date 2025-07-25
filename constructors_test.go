@@ -37,10 +37,11 @@ func TestNewTree(t *testing.T) {
 			wantLen: 1,
 			checkFn: func(t *testing.T, tree *Tree[string]) {
 				t.Helper()
-				if tree.focused == nil {
+				focusedNode := tree.GetFocusedNode()
+				if focusedNode == nil {
 					t.Error("NewTree(single node) focused = nil, want first node")
-				} else if tree.focused.ID() != "1" {
-					t.Errorf("NewTree(single node) focused.ID() = %q, want %q", tree.focused.ID(), "1")
+				} else if focusedNode.ID() != "1" {
+					t.Errorf("NewTree(single node) focused.ID() = %q, want %q", focusedNode.ID(), "1")
 				}
 			},
 		},
@@ -54,10 +55,11 @@ func TestNewTree(t *testing.T) {
 			wantLen: 3,
 			checkFn: func(t *testing.T, tree *Tree[string]) {
 				t.Helper()
-				if tree.focused == nil {
+				focusedNode := tree.GetFocusedNode()
+				if focusedNode == nil {
 					t.Error("NewTree(multiple nodes) focused = nil, want first node")
-				} else if tree.focused.ID() != "1" {
-					t.Errorf("NewTree(multiple nodes) focused.ID() = %q, want %q", tree.focused.ID(), "1")
+				} else if focusedNode.ID() != "1" {
+					t.Errorf("NewTree(multiple nodes) focused.ID() = %q, want %q", focusedNode.ID(), "1")
 				}
 			},
 		},

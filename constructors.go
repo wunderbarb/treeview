@@ -50,18 +50,21 @@ func NewTree[T any](nodes []*Node[T], opts ...option[T]) *Tree[T] {
 // newTree creates a new Tree with the provided node's configuration.
 func newTree[T any](nodes []*Node[T], cfg *masterConfig[T]) *Tree[T] {
 	// Initialize focus to the first node if available
-	var first *Node[T]
+	var focusedNodes []*Node[T]
+	focusedIDs := make(map[string]bool)
 	if len(nodes) > 0 {
-		first = nodes[0]
+		focusedNodes = []*Node[T]{nodes[0]}
+		focusedIDs[nodes[0].ID()] = true
 	}
 
 	// Create the tree with default components
 	t := &Tree[T]{
-		nodes:    nodes,
-		focused:  first,
-		searcher: cfg.searcher,
-		focusPol: cfg.focusPol,
-		provider: cfg.provider,
+		nodes:        nodes,
+		focusedNodes: focusedNodes,
+		focusedIDs:   focusedIDs,
+		searcher:     cfg.searcher,
+		focusPol:     cfg.focusPol,
+		provider:     cfg.provider,
 	}
 	return t
 }

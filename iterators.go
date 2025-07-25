@@ -42,6 +42,24 @@ func (t *Tree[T]) AllVisible(ctx context.Context) iter.Seq2[NodeInfo[T], error] 
 	}
 }
 
+// AllFocused returns an iterator over all focused nodes in the tree.
+// Context errors are returned unwrapped.
+func (t *Tree[T]) AllFocused(ctx context.Context) iter.Seq2[NodeInfo[T], error] {
+	return func(yield func(NodeInfo[T], error) bool) {
+		for info, err := range t.All(ctx) {
+			if err != nil {
+				yield(NodeInfo[T]{}, err)
+				return
+			}
+			if t.IsFocused(info.Node.ID()) {
+				if !yield(info, nil) {
+					return
+				}
+			}
+		}
+	}
+}
+
 // BreadthFirst returns an iterator over nodes using breadth first traversal.
 // Context errors are returned unwrapped.
 func (t *Tree[T]) BreadthFirst(ctx context.Context) iter.Seq2[NodeInfo[T], error] {

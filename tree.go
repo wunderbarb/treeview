@@ -27,7 +27,8 @@ import (
 type Tree[T any] struct {
 	mu      sync.RWMutex
 	nodes   []*Node[T]
-	focused *Node[T]
+	focusedNodes []*Node[T]
+	focusedIDs   map[string]bool
 
 	searcher SearchFn[T]
 	focusPol FocusPolicyFn[T]
@@ -46,17 +47,20 @@ func (t *Tree[T]) Nodes() []*Node[T] {
 func (t *Tree[T]) GetFocusedID() string {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	if t.focused == nil {
+	if len(t.focusedNodes) == 0 {
 		return ""
 	}
-	return t.focused.ID()
+	return t.focusedNodes[0].ID()
 }
 
 // GetFocusedNode returns the currently focused node or nil if none is focused.
 func (t *Tree[T]) GetFocusedNode() *Node[T] {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	return t.focused
+	if len(t.focusedNodes) == 0 {
+		return nil
+	}
+	return t.focusedNodes[0]
 }
 
 // SetFocusedID focuses the node with the given ID. An empty ID clears the
@@ -66,8 +70,11 @@ func (t *Tree[T]) GetFocusedNode() *Node[T] {
 func (t *Tree[T]) SetFocusedID(ctx context.Context, id string) (bool, error) {
 	// Handle clearing focus when empty ID provided
 	if id == "" {
-		changed := t.focused != nil
-		t.focused = nil
+		t.mu.Lock()
+		defer t.mu.Unlock()
+		changed := len(t.focusedNodes) > 0
+		t.focusedNodes = nil
+		t.focusedIDs = make(map[string]bool)
 		return changed, nil
 	}
 
@@ -77,17 +84,18 @@ func (t *Tree[T]) SetFocusedID(ctx context.Context, id string) (bool, error) {
 		return false, err
 	}
 
-	// Check if we're already focused on this node
-	if node == t.focused {
-		return false, nil
-	}
-
 	// Now acquire the lock to update the focused node
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// Update focus and report that it changed
-	t.focused = node
+	// Check if we're already focused on this node (and only this node)
+	if len(t.focusedNodes) == 1 && t.focusedNodes[0] == node {
+		return false, nil
+	}
+
+	// Clear multi-focus and set single focus (backward compatible)
+	t.focusedNodes = []*Node[T]{node}
+	t.focusedIDs = map[string]bool{node.ID(): true}
 	return true, nil
 }
 
@@ -122,16 +130,24 @@ func (t *Tree[T]) Move(ctx context.Context, offset int) (bool, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	// Get the current primary focused node
+	var currentFocus *Node[T]
+	if len(t.focusedNodes) > 0 {
+		currentFocus = t.focusedNodes[0]
+	}
+
 	// Use the configured focus policy to determine next node
 	// The policy must handle edge cases like moving past boundaries
-	next, err := t.focusPol(ctx, visible, t.focused, offset)
+	next, err := t.focusPol(ctx, visible, currentFocus, offset)
 	if err != nil {
 		return false, err
 	}
 
 	// Update focus if it actually changed
-	if next != t.focused {
-		t.focused = next
+	if next != currentFocus {
+		// Clear multi-focus and set single focus (backward compatible)
+		t.focusedNodes = []*Node[T]{next}
+		t.focusedIDs = map[string]bool{next.ID(): true}
 		return true, nil
 	}
 
@@ -158,12 +174,12 @@ func (t *Tree[T]) SetExpanded(ctx context.Context, id string, expanded bool) (bo
 	return true, nil
 }
 
-// ToggleFocused flips the expansion state of the focused node.
+// ToggleFocused flips the expansion state of all focused nodes.
 func (t *Tree[T]) ToggleFocused(ctx context.Context) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	if t.focused != nil {
-		t.focused.Toggle()
+	for _, node := range t.focusedNodes {
+		node.Toggle()
 	}
 }
 
@@ -259,8 +275,13 @@ func (t *Tree[T]) SearchAndExpand(ctx context.Context, term string) ([]*Node[T],
 		}
 	}
 
-	// Focus the first match to position the view
-	t.focused = matches[0]
+	// Focus all matching nodes
+	t.focusedNodes = make([]*Node[T], len(matches))
+	copy(t.focusedNodes, matches)
+	t.focusedIDs = make(map[string]bool, len(matches))
+	for _, match := range matches {
+		t.focusedIDs[match.ID()] = true
+	}
 	return matches, nil
 }
 
@@ -306,4 +327,224 @@ func (t *Tree[T]) setVisibleState(ctx context.Context, visible bool) error {
 		info.Node.SetVisible(visible)
 	}
 	return nil
+}
+
+// GetAllFocusedIDs returns the IDs of all currently focused nodes.
+func (t *Tree[T]) GetAllFocusedIDs() []string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	
+	ids := make([]string, len(t.focusedNodes))
+	for i, node := range t.focusedNodes {
+		ids[i] = node.ID()
+	}
+	return ids
+}
+
+// GetAllFocusedNodes returns all currently focused nodes.
+func (t *Tree[T]) GetAllFocusedNodes() []*Node[T] {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	
+	// Return a copy to prevent external modification
+	nodes := make([]*Node[T], len(t.focusedNodes))
+	copy(nodes, t.focusedNodes)
+	return nodes
+}
+
+// IsFocused checks if the node with the given ID is currently focused.
+func (t *Tree[T]) IsFocused(id string) bool {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.focusedIDs[id]
+}
+
+// AddFocusedID adds a node to the focused set. Returns ErrNodeNotFound if the ID doesn't exist.
+func (t *Tree[T]) AddFocusedID(ctx context.Context, id string) error {
+	// Find the node first
+	node, err := t.FindByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	// Check if already focused
+	if t.focusedIDs[id] {
+		return nil // Already focused, no change needed
+	}
+
+	// Add to focused set
+	t.focusedNodes = append(t.focusedNodes, node)
+	if t.focusedIDs == nil {
+		t.focusedIDs = make(map[string]bool)
+	}
+	t.focusedIDs[id] = true
+	return nil
+}
+
+// RemoveFocusedID removes a node from the focused set.
+func (t *Tree[T]) RemoveFocusedID(ctx context.Context, id string) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	// Check if the node is focused
+	if !t.focusedIDs[id] {
+		return nil // Not focused, no change needed
+	}
+
+	// Remove from focused IDs map
+	delete(t.focusedIDs, id)
+
+	// Remove from focused nodes slice
+	for i, node := range t.focusedNodes {
+		if node.ID() == id {
+			t.focusedNodes = append(t.focusedNodes[:i], t.focusedNodes[i+1:]...)
+			break
+		}
+	}
+	return nil
+}
+
+// SetAllFocusedIDs sets the complete list of focused node IDs, replacing any existing focus.
+func (t *Tree[T]) SetAllFocusedIDs(ctx context.Context, ids []string) error {
+	// Find all nodes first to validate they exist
+	nodes := make([]*Node[T], 0, len(ids))
+	for _, id := range ids {
+		node, err := t.FindByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		nodes = append(nodes, node)
+	}
+
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	// Replace focused state
+	t.focusedNodes = nodes
+	t.focusedIDs = make(map[string]bool, len(ids))
+	for _, id := range ids {
+		t.focusedIDs[id] = true
+	}
+	return nil
+}
+
+// ClearAllFocus clears all focused nodes.
+func (t *Tree[T]) ClearAllFocus() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.focusedNodes = nil
+	t.focusedIDs = make(map[string]bool)
+}
+
+// ToggleFocusedID toggles the focus state of the node with the given ID.
+func (t *Tree[T]) ToggleFocusedID(ctx context.Context, id string) error {
+	t.mu.RLock()
+	isFocused := t.focusedIDs[id]
+	t.mu.RUnlock()
+
+	if isFocused {
+		return t.RemoveFocusedID(ctx, id)
+	} else {
+		return t.AddFocusedID(ctx, id)
+	}
+}
+
+// MoveExtend moves the primary focus by offset while preserving the existing multi-focus.
+// If there's no existing multi-focus, it behaves like regular Move.
+// The bool result reports whether focus moved.
+func (t *Tree[T]) MoveExtend(ctx context.Context, offset int) (bool, error) {
+	// Get all currently visible nodes first (before locking)
+	visible, err := t.visibleNodes(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	// Lock for reading and updating focus
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	// Get the current primary focused node
+	var currentFocus *Node[T]
+	if len(t.focusedNodes) > 0 {
+		currentFocus = t.focusedNodes[0]
+	}
+
+	// Use the configured focus policy to determine next node
+	next, err := t.focusPol(ctx, visible, currentFocus, offset)
+	if err != nil {
+		return false, err
+	}
+
+	// If no change in focus, return false
+	if next == currentFocus {
+		return false, nil
+	}
+
+	// If we have no existing multi-focus, start with the current node
+	if len(t.focusedNodes) == 0 {
+		if next != nil {
+			t.focusedNodes = []*Node[T]{next}
+			t.focusedIDs = map[string]bool{next.ID(): true}
+		}
+		return true, nil
+	}
+
+	// Find the range between current primary focus and the new target
+	rangeNodes, err := t.findNodeRange(visible, currentFocus, next)
+	if err != nil {
+		return false, err
+	}
+
+	// Add all nodes in the range to focus (if not already focused)
+	for _, node := range rangeNodes {
+		if !t.focusedIDs[node.ID()] {
+			t.focusedNodes = append(t.focusedNodes, node)
+			t.focusedIDs[node.ID()] = true
+		}
+	}
+
+	// Update the primary focus to the new target by moving it to the front
+	// Remove the new target from its current position and add to front
+	for i, node := range t.focusedNodes {
+		if node == next {
+			// Move to front
+			t.focusedNodes = append([]*Node[T]{next}, append(t.focusedNodes[:i], t.focusedNodes[i+1:]...)...)
+			break
+		}
+	}
+
+	return true, nil
+}
+
+// findNodeRange finds all visible nodes between start and end (inclusive).
+func (t *Tree[T]) findNodeRange(visible []*Node[T], start, end *Node[T]) ([]*Node[T], error) {
+	if start == nil || end == nil {
+		return nil, nil
+	}
+
+	// Find indices of start and end nodes in visible list
+	startIdx, endIdx := -1, -1
+	for i, node := range visible {
+		if node == start {
+			startIdx = i
+		}
+		if node == end {
+			endIdx = i
+		}
+	}
+
+	if startIdx == -1 || endIdx == -1 {
+		return nil, nil
+	}
+
+	// Ensure we have the range in the correct order
+	if startIdx > endIdx {
+		startIdx, endIdx = endIdx, startIdx
+	}
+
+	// Return the range of nodes (inclusive)
+	return visible[startIdx : endIdx+1], nil
 }

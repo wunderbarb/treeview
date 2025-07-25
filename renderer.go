@@ -82,8 +82,9 @@ func renderTree[T any](ctx context.Context, tree *Tree[T]) (string, int, error) 
 		}
 
 		// Check if this node should be highlighted as focused
-		isFocused := node.ID() == tree.GetFocusedID()
-		if isFocused {
+		isFocused := tree.IsFocused(node.ID())
+		if isFocused && focusedLineIndex == -1 {
+			// Set focused line index to the first focused node for viewport positioning
 			focusedLineIndex = lineIdx
 		}
 

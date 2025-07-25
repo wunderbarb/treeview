@@ -231,6 +231,8 @@ func TestDefaultKeyMap(t *testing.T) {
 		Down:         []string{"down"},
 		Toggle:       []string{"right", "left"},
 		Reset:        []string{"ctrl+r"},
+		ExtendUp:     []string{"shift+up"},
+		ExtendDown:   []string{"shift+down"},
 		SearchStart:  []string{"enter"},
 		SearchAccept: []string{"enter"},
 		SearchCancel: []string{"esc"},

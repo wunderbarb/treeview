@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -41,6 +42,10 @@ type FileBrowserModel struct {
 	width        int
 	height       int
 	provider     *treeview.DefaultNodeProvider[treeview.FileInfo]
+
+	// Rotating viewport state for file types
+	typeRotationOffset int
+	typeRotationTicker *time.Ticker
 }
 
 // NewFileBrowserModel creates a new file browser model
@@ -48,11 +53,13 @@ func NewFileBrowserModel(initialPath string) *FileBrowserModel {
 	provider := treeview.NewFileNodeProvider[treeview.FileInfo]()
 
 	m := &FileBrowserModel{
-		currentPath:  initialPath,
-		showMetadata: true,
-		width:        120,
-		height:       30,
-		provider:     provider,
+		currentPath:        initialPath,
+		showMetadata:       true,
+		width:              120,
+		height:             30,
+		provider:           provider,
+		typeRotationOffset: 0,
+		typeRotationTicker: time.NewTicker(500 * time.Millisecond),
 	}
 
 	tree, err := loadDirectory(initialPath, provider)
@@ -67,7 +74,7 @@ func NewFileBrowserModel(initialPath string) *FileBrowserModel {
 
 // newTuiTreeModel creates a new TUI tree model with the current dimensions.
 func (m *FileBrowserModel) newTuiTreeModel(tree *treeview.Tree[treeview.FileInfo]) *treeview.TuiTreeModel[treeview.FileInfo] {
-	metadataWidth := m.width * 4 / 10
+	metadataWidth := m.width * 3 / 10
 	treeWidth := m.width - metadataWidth - 3
 	if !m.showMetadata {
 		treeWidth = m.width
@@ -80,7 +87,7 @@ func (m *FileBrowserModel) newTuiTreeModel(tree *treeview.Tree[treeview.FileInfo
 	return treeview.NewTuiTreeModel(
 		tree,
 		treeview.WithTuiWidth[treeview.FileInfo](treeWidth),
-		treeview.WithTuiHeight[treeview.FileInfo](m.height-2),
+		treeview.WithTuiHeight[treeview.FileInfo](m.height-3),
 		treeview.WithTuiKeyMap[treeview.FileInfo](keyMap),
 		treeview.WithTuiDisableNavBar[treeview.FileInfo](true),
 	)
@@ -158,6 +165,14 @@ func (m *FileBrowserModel) getCurrentSelectedNode() *treeview.Node[treeview.File
 	return m.treeModel.GetFocusedNode()
 }
 
+// getAllSelectedNodes returns all currently focused file system nodes
+func (m *FileBrowserModel) getAllSelectedNodes() []*treeview.Node[treeview.FileInfo] {
+	if m.treeModel == nil {
+		return nil
+	}
+	return m.treeModel.GetAllFocusedNodes()
+}
+
 // Message types for the file browser
 type directoryLoadedMsg struct {
 	tree *treeview.Tree[treeview.FileInfo]
@@ -172,9 +187,21 @@ type errorMsg struct {
 	err error
 }
 
+type rotationTickMsg struct{}
+
+// rotationTick returns a command that sends rotation tick messages
+func (m *FileBrowserModel) rotationTick() tea.Cmd {
+	return tea.Tick(2*time.Second, func(time.Time) tea.Msg {
+		return rotationTickMsg{}
+	})
+}
+
 // Init initializes the file browser model
 func (m *FileBrowserModel) Init() tea.Cmd {
-	return m.refreshCurrentDirectory()
+	return tea.Batch(
+		m.refreshCurrentDirectory(),
+		m.rotationTick(),
+	)
 }
 
 // Update handles input events and state changes
@@ -202,6 +229,13 @@ func (m *FileBrowserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if parentPath != m.currentPath {
 				return m, m.navigateToDirectory(parentPath)
 			}
+		case "]":
+			// VHS cannot submit shift and down so add extra hidden keys to short cut the issue in the demo.
+			m.treeModel.ExtendFocusDown()
+			return m, nil
+		case "[":
+			m.treeModel.ExtendFocusUp()
+			return m, nil
 		case "r":
 			return m, m.refreshCurrentDirectory()
 		}
@@ -215,6 +249,11 @@ func (m *FileBrowserModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case errorMsg:
 		log.Printf("Error: %v", msg.err)
+
+	case rotationTickMsg:
+		// Advance the rotation offset for file types display
+		m.typeRotationOffset++
+		return m, m.rotationTick() // Schedule next rotation
 	}
 
 	// Delegate all other messages to the tree model
@@ -266,7 +305,7 @@ func (m *FileBrowserModel) renderHeader() string {
 
 // renderTwoPanelLayout creates the two-panel layout with metadata and tree
 func (m *FileBrowserModel) renderTwoPanelLayout() string {
-	metadataWidth := m.width * 4 / 10
+	metadataWidth := m.width * 3 / 10
 	metadataView := m.renderMetadataPanel(metadataWidth)
 	treeView := m.treeModel.View()
 
@@ -277,30 +316,45 @@ func (m *FileBrowserModel) renderTwoPanelLayout() string {
 func (m *FileBrowserModel) renderMetadataPanel(width int) string {
 	style := lipgloss.NewStyle().
 		Width(width).
-		Height(m.height - 4).
+		Height(m.height - 5).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("62")).
 		Padding(1)
 
-	selectedNode := m.getCurrentSelectedNode()
-	if selectedNode == nil {
-		return style.Render("No file selected")
+	selectedNodes := m.getAllSelectedNodes()
+	if len(selectedNodes) == 0 {
+		return style.Render("No files selected")
 	}
 
 	var info []string
-	data := selectedNode.Data()
+
+	if len(selectedNodes) == 1 {
+		// Single selection - show detailed info
+		info = m.renderSingleNodeMetadata(selectedNodes[0])
+	} else {
+		// Multi-selection - show summary info
+		info = m.renderMultiNodeMetadata(selectedNodes)
+	}
+
+	return style.Render(strings.Join(info, "\n"))
+}
+
+// renderSingleNodeMetadata creates detailed metadata for a single node
+func (m *FileBrowserModel) renderSingleNodeMetadata(node *treeview.Node[treeview.FileInfo]) []string {
+	var info []string
+	data := node.Data()
 
 	if data.IsDir() {
-		info = append(info, "Directory", "")
+		info = append(info, "📁 Directory", "")
 	} else {
-		info = append(info, "File", "")
+		info = append(info, "📄 File", "")
 	}
 
 	info = append(info, fmt.Sprintf("Name: %s", data.Name()))
 
 	if data.IsDir() {
-		info = append(info, fmt.Sprintf("Expanded: %v", selectedNode.IsExpanded()))
-		info = append(info, fmt.Sprintf("Items: %d", len(selectedNode.Children())))
+		info = append(info, fmt.Sprintf("Expanded: %v", node.IsExpanded()))
+		info = append(info, fmt.Sprintf("Items: %d", len(node.Children())))
 	} else {
 		info = append(info, fmt.Sprintf("Size: %s", formatSize(data.Size())))
 	}
@@ -318,7 +372,116 @@ func (m *FileBrowserModel) renderMetadataPanel(width int) string {
 		}
 	}
 
-	return style.Render(strings.Join(info, "\n"))
+	return info
+}
+
+// renderMultiNodeMetadata creates summary metadata for multiple nodes
+func (m *FileBrowserModel) renderMultiNodeMetadata(nodes []*treeview.Node[treeview.FileInfo]) []string {
+	var info []string
+
+	// Header
+	info = append(info, fmt.Sprintf("🎯 Multi-Selection (%d items)", len(nodes)), "")
+
+	// Count by type
+	var files, dirs int
+	var totalSize int64
+	var extensions = make(map[string]int)
+
+	for _, node := range nodes {
+		data := node.Data()
+		if data.IsDir() {
+			dirs++
+		} else {
+			files++
+			totalSize += data.Size()
+			if ext := filepath.Ext(data.Name()); ext != "" {
+				extensions[ext]++
+			}
+		}
+	}
+
+	// Basic counts
+	if dirs > 0 {
+		info = append(info, fmt.Sprintf("📁 Directories: %d", dirs))
+	}
+	if files > 0 {
+		info = append(info, fmt.Sprintf("📄 Files: %d", files))
+		if totalSize > 0 {
+			info = append(info, fmt.Sprintf("Total Size: %s", formatSize(totalSize)))
+		}
+	}
+
+	// File extensions summary with rotating viewport
+	if len(extensions) > 0 {
+		info = append(info, "")
+		info = append(info, m.renderRotatingFileTypes(extensions)...)
+	}
+
+	// Bulk operations hint
+	info = append(info, "", "💡 Use ←/→ to expand/collapse")
+	info = append(info, "all selected directories!")
+
+	return info
+}
+
+// renderRotatingFileTypes creates a rotating viewport for file type counts
+func (m *FileBrowserModel) renderRotatingFileTypes(extensions map[string]int) []string {
+	if len(extensions) == 0 {
+		return []string{}
+	}
+
+	// Convert to sorted slice for consistent rotation
+	type extCount struct {
+		ext   string
+		count int
+	}
+
+	var extSlice []extCount
+	for ext, count := range extensions {
+		extSlice = append(extSlice, extCount{ext, count})
+	}
+
+	// Sort by extension name for consistent display
+	sort.Slice(extSlice, func(i, j int) bool {
+		return extSlice[i].ext < extSlice[j].ext
+	})
+
+	const viewportSize = 2
+	totalTypes := len(extSlice)
+
+	var info []string
+
+	if totalTypes <= viewportSize {
+		// If we have few types, show them all statically
+		info = append(info, "File Types:")
+		for _, ec := range extSlice {
+			info = append(info, fmt.Sprintf("  %s: %d", ec.ext, ec.count))
+		}
+	} else {
+		// Use rotating viewport for many types
+		startIdx := m.typeRotationOffset % totalTypes
+
+		// Show total count and current viewport indicator
+		indicator := "●"
+		for i := 0; i < totalTypes; i++ {
+			if i == startIdx {
+				indicator += "○"
+			} else {
+				indicator += "●"
+			}
+		}
+
+		info = append(info, fmt.Sprintf("File Types (%d total) %s", totalTypes, indicator))
+
+		// Show current viewport slice
+		for i := 0; i < viewportSize; i++ {
+			idx := (startIdx + i) % totalTypes
+			ec := extSlice[idx]
+			info = append(info, fmt.Sprintf("  %s: %d", ec.ext, ec.count))
+		}
+	}
+
+	return info
 }
 
 // renderStatusBar creates the status bar merging tree navigation with file browser controls
@@ -332,8 +495,14 @@ func (m *FileBrowserModel) renderStatusBar() string {
 	// Get the tree navigation controls from the tree model
 	treeNav := m.treeModel.NavBar()
 
-	// Add file browser specific controls
-	fileBrowserNav := "enter: Focus  h: Parent  r: Refresh"
+	// Add file browser specific controls and multi-focus info
+	selectedCount := len(m.getAllSelectedNodes())
+	var fileBrowserNav string
+	if selectedCount > 1 {
+		fileBrowserNav = fmt.Sprintf("enter: Focus  h: Parent  r: Refresh  [%d selected]", selectedCount)
+	} else {
+		fileBrowserNav = "enter: Focus  h: Parent  r: Refresh"
+	}
 
 	// Combine both sets of controls
 	var statusText string

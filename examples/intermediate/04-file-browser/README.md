@@ -10,4 +10,4 @@ go run main.go
 
 ## Demo
 
-![The Demo](https://vhs.charm.sh/vhs-6O3mmq9mImLCcoU6xZEeao.gif)
+![The Demo](https://vhs.charm.sh/vhs-5XfivVFWrVQQODOA3d6ysd.gif)
