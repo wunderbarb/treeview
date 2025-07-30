@@ -120,6 +120,10 @@ TreeView is built on top of the excellent [Charm](https://charm.sh) ecosystem:
 - [VHS](https://github.com/charmbracelet/vhs) for epic scriptable demos
 - [Charm](https://github.com/charmbracelet) community for inspiration and gif hosting!
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Digital-Shane/treeview&type=Date)](https://www.star-history.com/#Digital-Shane/treeview&Date)
+
 ---
 
 [lg]: https://github.com/charmbracelet/lipgloss
