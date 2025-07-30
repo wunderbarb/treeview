@@ -168,6 +168,7 @@ func (n *Node[T]) Parent() *Node[T] {
 type FileInfo struct {
 	os.FileInfo
 	Path string
+	Extra map[string]any
 }
 
 // NewFileSystemNode builds a FileSystemNode from a path and the corresponding
