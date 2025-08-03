@@ -26,7 +26,7 @@ func PredHasExtension[T any](extensions ...string) func(*Node[T]) bool {
 // This works by checking if the node's data implements the IsDir() bool method.
 func PredIsDir[T any]() func(*Node[T]) bool {
 	return func(n *Node[T]) bool {
-		if dirNode, ok := any(n.Data()).(interface{ IsDir() bool }); ok {
+		if dirNode, ok := any(*n.Data()).(interface{ IsDir() bool }); ok {
 			return dirNode.IsDir()
 		}
 		return false

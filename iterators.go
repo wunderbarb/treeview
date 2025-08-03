@@ -60,6 +60,12 @@ func (t *Tree[T]) AllFocused(ctx context.Context) iter.Seq2[NodeInfo[T], error] 
 	}
 }
 
+// AllBottomUp returns an iterator that yields nodes in bottom-up order (leaves first, then parents).
+// Context errors are returned unwrapped.
+func (t *Tree[T]) AllBottomUp(ctx context.Context) iter.Seq2[NodeInfo[T], error] {
+	return bottomUpSeq(ctx, t.Nodes(), true)
+}
+
 // BreadthFirst returns an iterator over nodes using breadth first traversal.
 // Context errors are returned unwrapped.
 func (t *Tree[T]) BreadthFirst(ctx context.Context) iter.Seq2[NodeInfo[T], error] {
@@ -125,6 +131,42 @@ func bfsSeq[T any](ctx context.Context, roots []*Node[T], followUnexpanded bool)
 				for i, child := range children {
 					queue = append(queue, NodeInfo[T]{Node: child, Depth: cur.Depth + 1, IsLast: i == len(children)-1})
 				}
+			}
+		}
+	}
+}
+
+// bottomUpSeq produces a bottom-up iterator that yields NodeInfo values and context errors.
+// It uses post-order traversal to visit children before their parents.
+func bottomUpSeq[T any](ctx context.Context, roots []*Node[T], followUnexpanded bool) iter.Seq2[NodeInfo[T], error] {
+	return func(yield func(NodeInfo[T], error) bool) {
+		// Collect all nodes in post-order using a stack-based approach
+		var visitPostOrder func(*Node[T], int, bool) bool
+		visitPostOrder = func(node *Node[T], depth int, isLast bool) bool {
+			// Check for context cancellation
+			if err := ctx.Err(); err != nil {
+				yield(NodeInfo[T]{}, err)
+				return false
+			}
+
+			// First visit children if they exist and should be followed
+			if node.HasChildren() && (followUnexpanded || node.IsExpanded()) {
+				children := node.Children()
+				for i, child := range children {
+					if !visitPostOrder(child, depth+1, i == len(children)-1) {
+						return false
+					}
+				}
+			}
+
+			// Then visit the current node
+			return yield(NodeInfo[T]{Node: node, Depth: depth, IsLast: isLast}, nil)
+		}
+
+		// Process each root in order
+		for i, root := range roots {
+			if !visitPostOrder(root, 0, i == len(roots)-1) {
+				return
 			}
 		}
 	}
