@@ -59,7 +59,7 @@ func (f *FileData) IsDir() bool {
 
 // viewportFormatter formats files with size information
 func viewportFormatter(node *treeview.Node[*FileData]) (string, bool) {
-	data := node.Data()
+	data := *node.Data()
 	if data.size > 0 {
 		return fmt.Sprintf("%s (%s)", data.Name(), formatFileSize(data.size)), true
 	}

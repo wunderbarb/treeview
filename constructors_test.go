@@ -79,7 +79,7 @@ func TestNewTree(t *testing.T) {
 			checkFn: func(t *testing.T, tree *Tree[string]) {
 				t.Helper()
 				for _, node := range tree.nodes {
-					if node.Data() == "filter" {
+					if *node.Data() == "filter" {
 						t.Errorf("NewTree(with filter) contains filtered node %q", node.ID())
 					}
 				}
@@ -118,14 +118,14 @@ func TestNewTree(t *testing.T) {
 			},
 			opts: []option[string]{
 				WithExpandFunc[string](func(node *Node[string]) bool {
-					return node.Data() == "expand"
+					return *node.Data() == "expand"
 				}),
 			},
 			wantLen: 2,
 			checkFn: func(t *testing.T, tree *Tree[string]) {
 				t.Helper()
 				for _, node := range tree.nodes {
-					want := node.Data() == "expand"
+					want := *node.Data() == "expand"
 					if node.IsExpanded() != want {
 						t.Errorf("NewTree(with expand func) node %q expanded = %v, want %v",
 							node.ID(), node.IsExpanded(), want)
@@ -987,7 +987,7 @@ func TestOptionsIntegration(t *testing.T) {
 		}),
 		WithMaxDepth[string](1),
 		WithExpandFunc[string](func(node *Node[string]) bool {
-			return node.Data() == "expand"
+			return *node.Data() == "expand"
 		}),
 	)
 
