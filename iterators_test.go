@@ -403,6 +403,103 @@ func TestTree_BreadthFirst(t *testing.T) {
 	}
 }
 
+func TestTree_AllBottomUp(t *testing.T) {
+	tests := []struct {
+		name       string
+		setup      func(t *testing.T) *Tree[string]
+		wantIDs    []string
+		wantDepths []int
+	}{
+		{
+			name: "empty_tree",
+			setup: func(t *testing.T) *Tree[string] {
+				return createTestTreeForIterators[string](t)
+			},
+			wantIDs:    []string{},
+			wantDepths: []int{},
+		},
+		{
+			name:  "bottom_up_order",
+			setup: createSimpleTree,
+			// Bottom-up should visit leaves first, then parents
+			wantIDs:    []string{"1.1.1", "1.1", "1.2", "1", "2.1", "2"},
+			wantDepths: []int{2, 1, 1, 0, 1, 0},
+		},
+		{
+			name: "single_branch",
+			setup: func(t *testing.T) *Tree[string] {
+				tree := createTestTreeForIterators[string](t)
+				root := NewNode("1", "Root", "data")
+				child := NewNode("2", "Child", "data")
+				grandchild := NewNode("3", "Grandchild", "data")
+
+				root.AddChild(child)
+				child.AddChild(grandchild)
+				root.Expand()
+				child.Expand()
+
+				tree.nodes = []*Node[string]{root}
+				return tree
+			},
+			wantIDs:    []string{"3", "2", "1"},
+			wantDepths: []int{2, 1, 0},
+		},
+		{
+			name: "multiple_roots_bottom_up",
+			setup: func(t *testing.T) *Tree[string] {
+				tree := createTestTreeForIterators[string](t)
+				root1 := NewNode("A", "Root A", "dataA")
+				root2 := NewNode("B", "Root B", "dataB")
+				root3 := NewNode("C", "Root C", "dataC")
+
+				childA1 := NewNode("A1", "Child A1", "dataA1")
+				childA2 := NewNode("A2", "Child A2", "dataA2")
+				childB1 := NewNode("B1", "Child B1", "dataB1")
+
+				root1.AddChild(childA1)
+				root1.AddChild(childA2)
+				root2.AddChild(childB1)
+
+				root1.Expand()
+				root2.Expand()
+
+				tree.nodes = []*Node[string]{root1, root2, root3}
+				return tree
+			},
+			// Bottom-up: leaves first, then parents in order of roots
+			wantIDs:    []string{"A1", "A2", "A", "B1", "B", "C"},
+			wantDepths: []int{1, 1, 0, 1, 0, 0},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			tree := test.setup(t)
+			ctx := context.Background()
+
+			infos, err := collectNodes(t, tree.AllBottomUp(ctx))
+			if err != nil {
+				t.Errorf("Tree.AllBottomUp() error = %v", err)
+				return
+			}
+
+			gotIDs := extractIDs(infos)
+			if diff := cmp.Diff(test.wantIDs, gotIDs); diff != "" {
+				t.Errorf("Tree.AllBottomUp() IDs mismatch (-want +got):\n%s", diff)
+			}
+
+			// Check depths
+			gotDepths := make([]int, len(infos))
+			for i, info := range infos {
+				gotDepths[i] = info.Depth
+			}
+			if diff := cmp.Diff(test.wantDepths, gotDepths); diff != "" {
+				t.Errorf("Tree.AllBottomUp() depths mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestIterators_ContextCancellation(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -424,6 +521,12 @@ func TestIterators_ContextCancellation(t *testing.T) {
 			name: "Tree.BreadthFirst",
 			iterator: func(tree *Tree[string], ctx context.Context) iter.Seq2[NodeInfo[string], error] {
 				return tree.BreadthFirst(ctx)
+			},
+		},
+		{
+			name: "Tree.AllBottomUp",
+			iterator: func(tree *Tree[string], ctx context.Context) iter.Seq2[NodeInfo[string], error] {
+				return tree.AllBottomUp(ctx)
 			},
 		},
 		{
