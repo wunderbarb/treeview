@@ -76,8 +76,8 @@ func (n *Node[T]) Name() string {
 
 // Data exposes the payload you supplied when creating the node. As with any
 // generic accessor, callers should assert the concrete type they expect.
-func (n *Node[T]) Data() T {
-	return n.data
+func (n *Node[T]) Data() *T {
+	return &n.data
 }
 
 // SetData replaces the payload stored inside the node.

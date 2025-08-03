@@ -531,7 +531,7 @@ func TestNodeImplementation(t *testing.T) {
 		node := createTestNode("test", data, false)
 		got := node.Data()
 		// Compare the actual data
-		if got != data {
+		if *got != data {
 			t.Errorf("Node.Data() = %v, want %v", got, data)
 		}
 	})

@@ -40,8 +40,8 @@ func createDarkThemeProvider() *treeview.DefaultNodeProvider[string] {
 
 		// Dark theme formatter - simple name-based formatting
 		treeview.WithFormatter[string](func(node *treeview.Node[string]) (string, bool) {
-			if node.Data() != "" {
-				return node.Data(), true
+			if *node.Data() != "" {
+				return *node.Data(), true
 			}
 			return node.ID(), true
 		}),
@@ -77,8 +77,8 @@ func createRetroThemeProvider() *treeview.DefaultNodeProvider[string] {
 
 		// Retro theme formatter
 		treeview.WithFormatter[string](func(node *treeview.Node[string]) (string, bool) {
-			if node.Data() != "" {
-				return node.Data(), true
+			if *node.Data() != "" {
+				return *node.Data(), true
 			}
 			return node.ID(), true
 		}),
@@ -115,8 +115,8 @@ func createNeonThemeProvider() *treeview.DefaultNodeProvider[string] {
 
 		// Neon theme formatter
 		treeview.WithFormatter[string](func(node *treeview.Node[string]) (string, bool) {
-			if node.Data() != "" {
-				return node.Data(), true
+			if *node.Data() != "" {
+				return *node.Data(), true
 			}
 			return node.ID(), true
 		}),

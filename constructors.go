@@ -520,7 +520,7 @@ func filterNodes[T any](nodes []*Node[T], filterFunc FilterFn[T]) []*Node[T] {
 		filteredChildren := filterNodes(children, filterFunc)
 
 		// Check if the current node should be included
-		shouldInclude := filterFunc(node.Data())
+		shouldInclude := filterFunc(*node.Data())
 
 		// Include the node if:
 		// 1. It passes the filter itself, OR
