@@ -179,10 +179,10 @@ func defaultSearchFn[T any](ctx context.Context, node *Node[T], term string) boo
 		"",
 	}
 	// Then the data if it's a string or has a String() method.
-	if nodeData, ok := any(node.Data()).(string); ok {
+	if nodeData, ok := any(*node.Data()).(string); ok {
 		fields[2] = strings.ToLower(nodeData)
 	}
-	if nodeData, ok := any(node.Data()).(interface{ String() string }); ok {
+	if nodeData, ok := any(*node.Data()).(interface{ String() string }); ok {
 		fields[3] = strings.ToLower(nodeData.String())
 	}
 
