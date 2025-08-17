@@ -113,11 +113,13 @@ func renderTree[T any](ctx context.Context, tree *Tree[T]) (string, int, error) 
 // renderTreeWithViewport combines tree rendering with viewport scrolling.
 // It automatically positions the viewport to keep the focused line visible.
 func renderTreeWithViewport[T any](ctx context.Context, tree *Tree[T], vp *viewport.Model) (string, error) {
-	content, focusedLineIndex, err := renderTree(ctx, tree)
-	// Error can't impact the viewport, so we ignore it during vp setup,
-	// but we return it so callers can handle it if they want.
-	vp.SetContent(content)
-
+	// Use efficient viewport rendering that only processes visible lines
+	content, totalLines, focusedLineIndex, err := renderViewportOnly(ctx, tree, vp)
+	
+	// Update viewport's understanding of total content for scrollbar
+	// We use empty lines to set the height without the memory cost of actual content
+	vp.SetContent(strings.Repeat("\n", max(0, totalLines-1)))
+	
 	// Auto-scroll to keep focused line visible
 	if focusedLineIndex >= 0 && vp.Height > 0 {
 		// If focused line is above viewport, scroll up
@@ -130,10 +132,94 @@ func renderTreeWithViewport[T any](ctx context.Context, tree *Tree[T], vp *viewp
 			vp.YOffset = max(vp.YOffset, 0)
 		}
 	}
+	
+	// Return just the visible content
+	return content, err
+}
 
-	// Return the viewport's view of the content
-	// This shows only the visible portion based on scroll position
-	return vp.View(), err
+// renderViewportOnly efficiently renders only the visible lines in the viewport
+// in a single pass through the tree. Returns the rendered content, total line count,
+// focused line index, and any error.
+func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.Model) (string, int, int, error) {
+	// Get a string builder from the pool for efficiency
+	sb := sbPool.Get().(*strings.Builder)
+	defer func() {
+		sb.Reset()
+		sbPool.Put(sb)
+	}()
+
+	// Calculate the range of lines we need to render
+	startLine := vp.YOffset
+	endLine := vp.YOffset + vp.Height
+	
+	// Track state for single-pass rendering
+	currentLine := 0
+	focusedLineIndex := -1
+	renderBuffer := make([]string, 0, vp.Height)
+	
+	// ancestorIsLastChild tracks whether each ancestor (at each depth level) was the last
+	// child among its siblings. This determines whether we draw a vertical continuation
+	// line (│) or a space when building the tree prefix.
+	var ancestorIsLastChild []bool
+
+	for info, err := range tree.AllVisible(ctx) {
+		if err != nil {
+			return "", currentLine, focusedLineIndex, err
+		}
+		
+		node := info.Node
+		depth := info.Depth
+		isLast := info.IsLast
+
+		// Update our tracking of which ancestors are last children at each depth.
+		// We need to maintain this for all nodes to get correct prefixes
+		if depth >= len(ancestorIsLastChild) {
+			ancestorIsLastChild = append(ancestorIsLastChild, isLast)
+		} else {
+			// At same depth or going shallower. Update current depth and trim deeper levels.
+			ancestorIsLastChild[depth] = isLast
+			ancestorIsLastChild = ancestorIsLastChild[:depth+1]
+		}
+
+		// Check if this node is focused (do this for all nodes to find focus position)
+		isFocused := tree.IsFocused(node.ID())
+		if isFocused && focusedLineIndex == -1 {
+			focusedLineIndex = currentLine
+		}
+
+		// Only render lines that will be visible in the viewport
+		if currentLine >= startLine && currentLine < endLine {
+			// Build the tree branch prefix based on ancestor positions
+			// Root nodes (depth 0) get no prefix at all
+			var prefix string
+			if depth > 0 {
+				prefix = buildPrefix(ancestorIsLastChild[:depth], isLast)
+			}
+
+			// Render the actual node content
+			line, err := renderNode(tree.provider, node, prefix, isFocused)
+			if err != nil {
+				return sb.String(), currentLine, focusedLineIndex, err
+			}
+			renderBuffer = append(renderBuffer, line)
+		}
+
+		currentLine++
+
+		if err := ctx.Err(); err != nil {
+			return sb.String(), currentLine, focusedLineIndex, err
+		}
+	}
+
+	// Join the visible lines
+	for i, line := range renderBuffer {
+		if i > 0 {
+			sb.WriteByte('\n')
+		}
+		sb.WriteString(line)
+	}
+
+	return sb.String(), currentLine, focusedLineIndex, nil
 }
 
 // buildPrefix constructs the complete tree branch prefix string that visually connects
