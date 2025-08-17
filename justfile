@@ -17,6 +17,10 @@ test:
 test-verbose:
     go test -v ./...
 
+# Run benchmarks (skip regular tests)
+bench:
+    go test -run=^$ -bench=. -benchmem ./...
+
 # Generate test coverage report and open in browser
 test-coverage:
     #!/usr/bin/env bash
