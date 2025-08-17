@@ -113,14 +113,10 @@ func renderTree[T any](ctx context.Context, tree *Tree[T]) (string, int, error) 
 // renderTreeWithViewport combines tree rendering with viewport scrolling.
 // It automatically positions the viewport to keep the focused line visible.
 func renderTreeWithViewport[T any](ctx context.Context, tree *Tree[T], vp *viewport.Model) (string, error) {
-	// Use efficient viewport rendering that only processes visible lines
-	content, totalLines, focusedLineIndex, err := renderViewportOnly(ctx, tree, vp)
+	// First, find the focused line position to determine if we need to adjust the viewport
+	focusedLineIndex := findFocusedLineIndex(ctx, tree)
 	
-	// Update viewport's understanding of total content for scrollbar
-	// We use empty lines to set the height without the memory cost of actual content
-	vp.SetContent(strings.Repeat("\n", max(0, totalLines-1)))
-	
-	// Auto-scroll to keep focused line visible
+	// Auto-scroll to keep focused line visible BEFORE rendering
 	if focusedLineIndex >= 0 && vp.Height > 0 {
 		// If focused line is above viewport, scroll up
 		if focusedLineIndex < vp.YOffset {
@@ -133,14 +129,43 @@ func renderTreeWithViewport[T any](ctx context.Context, tree *Tree[T], vp *viewp
 		}
 	}
 	
+	// Now render only the visible portion with the correct viewport offset
+	content, totalLines, err := renderViewportOnly(ctx, tree, vp)
+	
+	// Update viewport's understanding of total content for scrollbar
+	// We use empty lines to set the height without the memory cost of actual content
+	vp.SetContent(strings.Repeat("\n", max(0, totalLines-1)))
+	
 	// Return just the visible content
 	return content, err
 }
 
+// findFocusedLineIndex quickly scans through the tree to find the focused line's position.
+// This is a lightweight operation that doesn't render anything.
+func findFocusedLineIndex[T any](ctx context.Context, tree *Tree[T]) int {
+	lineIdx := 0
+	for info, err := range tree.AllVisible(ctx) {
+		if err != nil {
+			return -1
+		}
+		if tree.IsFocused(info.Node.ID()) {
+			return lineIdx
+		}
+		lineIdx++
+		
+		// Check for context cancellation periodically
+		if lineIdx%100 == 0 {
+			if ctx.Err() != nil {
+				return -1
+			}
+		}
+	}
+	return -1
+}
+
 // renderViewportOnly efficiently renders only the visible lines in the viewport
-// in a single pass through the tree. Returns the rendered content, total line count,
-// focused line index, and any error.
-func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.Model) (string, int, int, error) {
+// in a single pass through the tree. Returns the rendered content, total line count, and any error.
+func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.Model) (string, int, error) {
 	// Get a string builder from the pool for efficiency
 	sb := sbPool.Get().(*strings.Builder)
 	defer func() {
@@ -154,8 +179,7 @@ func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.
 	
 	// Track state for single-pass rendering
 	currentLine := 0
-	focusedLineIndex := -1
-	renderBuffer := make([]string, 0, vp.Height)
+	renderBuffer := make([]string, 0, vp.Height) // Pre-allocate for viewport height
 	
 	// ancestorIsLastChild tracks whether each ancestor (at each depth level) was the last
 	// child among its siblings. This determines whether we draw a vertical continuation
@@ -164,7 +188,7 @@ func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.
 
 	for info, err := range tree.AllVisible(ctx) {
 		if err != nil {
-			return "", currentLine, focusedLineIndex, err
+			return "", currentLine, err
 		}
 		
 		node := info.Node
@@ -181,12 +205,6 @@ func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.
 			ancestorIsLastChild = ancestorIsLastChild[:depth+1]
 		}
 
-		// Check if this node is focused (do this for all nodes to find focus position)
-		isFocused := tree.IsFocused(node.ID())
-		if isFocused && focusedLineIndex == -1 {
-			focusedLineIndex = currentLine
-		}
-
 		// Only render lines that will be visible in the viewport
 		if currentLine >= startLine && currentLine < endLine {
 			// Build the tree branch prefix based on ancestor positions
@@ -196,10 +214,13 @@ func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.
 				prefix = buildPrefix(ancestorIsLastChild[:depth], isLast)
 			}
 
+			// Check if this node is focused
+			isFocused := tree.IsFocused(node.ID())
+
 			// Render the actual node content
 			line, err := renderNode(tree.provider, node, prefix, isFocused)
 			if err != nil {
-				return sb.String(), currentLine, focusedLineIndex, err
+				return sb.String(), currentLine, err
 			}
 			renderBuffer = append(renderBuffer, line)
 		}
@@ -207,7 +228,7 @@ func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.
 		currentLine++
 
 		if err := ctx.Err(); err != nil {
-			return sb.String(), currentLine, focusedLineIndex, err
+			return sb.String(), currentLine, err
 		}
 	}
 
@@ -219,7 +240,7 @@ func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.
 		sb.WriteString(line)
 	}
 
-	return sb.String(), currentLine, focusedLineIndex, nil
+	return sb.String(), currentLine, nil
 }
 
 // buildPrefix constructs the complete tree branch prefix string that visually connects
