@@ -115,7 +115,7 @@ func renderTree[T any](ctx context.Context, tree *Tree[T]) (string, int, error) 
 func renderTreeWithViewport[T any](ctx context.Context, tree *Tree[T], vp *viewport.Model) (string, error) {
 	// First, find the focused line position to determine if we need to adjust the viewport
 	focusedLineIndex := findFocusedLineIndex(ctx, tree)
-	
+
 	// Auto-scroll to keep focused line visible BEFORE rendering
 	if focusedLineIndex >= 0 && vp.Height > 0 {
 		// If focused line is above viewport, scroll up
@@ -128,14 +128,14 @@ func renderTreeWithViewport[T any](ctx context.Context, tree *Tree[T], vp *viewp
 			vp.YOffset = max(vp.YOffset, 0)
 		}
 	}
-	
+
 	// Now render only the visible portion with the correct viewport offset
 	content, totalLines, err := renderViewportOnly(ctx, tree, vp)
-	
+
 	// Update viewport's understanding of total content for scrollbar
 	// We use empty lines to set the height without the memory cost of actual content
 	vp.SetContent(strings.Repeat("\n", max(0, totalLines-1)))
-	
+
 	// Return just the visible content
 	return content, err
 }
@@ -152,7 +152,7 @@ func findFocusedLineIndex[T any](ctx context.Context, tree *Tree[T]) int {
 			return lineIdx
 		}
 		lineIdx++
-		
+
 		// Check for context cancellation periodically
 		if lineIdx%100 == 0 {
 			if ctx.Err() != nil {
@@ -176,11 +176,11 @@ func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.
 	// Calculate the range of lines we need to render
 	startLine := vp.YOffset
 	endLine := vp.YOffset + vp.Height
-	
+
 	// Track state for single-pass rendering
 	currentLine := 0
 	renderBuffer := make([]string, 0, vp.Height) // Pre-allocate for viewport height
-	
+
 	// ancestorIsLastChild tracks whether each ancestor (at each depth level) was the last
 	// child among its siblings. This determines whether we draw a vertical continuation
 	// line (│) or a space when building the tree prefix.
@@ -190,7 +190,7 @@ func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.
 		if err != nil {
 			return "", currentLine, err
 		}
-		
+
 		node := info.Node
 		depth := info.Depth
 		isLast := info.IsLast

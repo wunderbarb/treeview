@@ -167,7 +167,7 @@ func (n *Node[T]) Parent() *Node[T] {
 // need to juggle both pieces of information after a stat.
 type FileInfo struct {
 	os.FileInfo
-	Path string
+	Path  string
 	Extra map[string]any
 }
 

@@ -15,6 +15,9 @@ type FilterFn[T any] func(item T) bool
 // ExpandFn returns true if the node should be expanded during the build process.
 type ExpandFn[T any] func(node *Node[T]) bool
 
+// ProgressCallback is invoked during tree construction every time a node is created.
+type ProgressCallback[T any] func(processed int, node *Node[T])
+
 // FocusPolicyFn selects the next node to focus when the user moves up/down the
 // list. The offset is usually ±1 but can be any integer.
 type FocusPolicyFn[T any] func(ctx context.Context, visible []*Node[T], current *Node[T], offset int) (*Node[T], error)
@@ -86,6 +89,16 @@ func WithTraversalCap[T any](cap int) option[T] {
 	}
 }
 
+// WithProgressCallback registers a callback that is invoked each time a new
+// node is created during any of the constructor build phases. It is not
+// invoked by NewTree (which accepts pre-built nodes) except once per root
+// node supplied so callers have a consistent hook.
+func WithProgressCallback[T any](cb ProgressCallback[T]) option[T] {
+	return func(c *masterConfig[T]) {
+		c.progressCb = cb
+	}
+}
+
 // masterConfig is the internal, unexported struct that aggregates options from
 // different domains (build, filesystem, tree). It is used by the unified
 // constructors to collect and dispatch options to the appropriate internal
@@ -94,8 +107,9 @@ type masterConfig[T any] struct {
 	// Options used during the build process.
 	maxDepth     int
 	traversalCap int
-	expandFunc   ExpandFn[T] // If the function returns true, the node is expanded immediately during the build process.
-	filterFunc   FilterFn[T] // If the function returns true, the node is included in the tree.
+	expandFunc   ExpandFn[T]         // If the function returns true, the node is expanded immediately during the build process.
+	filterFunc   FilterFn[T]         // If the function returns true, the node is included in the tree.
+	progressCb   ProgressCallback[T] // Optional progress reporting during construction.
 
 	// Options passed to the final tree.
 	searcher SearchFn[T]
@@ -113,6 +127,7 @@ func newMasterConfig[T any](opts []option[T], defaults ...option[T]) *masterConf
 		filterFunc:   nil,
 		maxDepth:     -1,
 		traversalCap: 10000,
+		progressCb:   nil,
 	}
 
 	// Apply provided defaults first
@@ -160,6 +175,14 @@ func (cfg *masterConfig[T]) hasDepthLimitBeenReached(currentDepth int) bool {
 		return false
 	}
 	return currentDepth >= cfg.maxDepth
+}
+
+// reportProgress invokes the configured progress callback (if any).
+func (cfg *masterConfig[T]) reportProgress(processed int, node *Node[T]) {
+	if cfg.progressCb == nil || node == nil {
+		return
+	}
+	cfg.progressCb(processed, node)
 }
 
 // defaultSearchFn implements a simple case-insensitive search strategy that matches any substring
