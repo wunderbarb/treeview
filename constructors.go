@@ -16,6 +16,7 @@ import (
 //   - WithFilterFunc:  Filters nodes recursively, keeping parents with matching children
 //   - WithMaxDepth:    Limits tree depth (0 = root only, 1 = root + children, etc.)
 //   - WithExpandFunc:  Sets initial expansion state for nodes
+//   - WithProgressCallback: Reports progress for each provided root node
 //   - WithSearcher:    Custom search algorithm
 //   - WithFocusPolicy: Custom focus navigation logic
 //   - WithProvider:    Custom node rendering provider
@@ -28,6 +29,14 @@ import (
 // expand the tree during construction.
 func NewTree[T any](nodes []*Node[T], opts ...option[T]) *Tree[T] {
 	cfg := newMasterConfig(opts)
+
+	// Report progress for user-supplied nodes so the callback can still be
+	// leveraged even when callers pre-assemble the slice.
+	if cfg.progressCb != nil {
+		for i, n := range nodes {
+			cfg.reportProgress(i+1, n)
+		}
+	}
 
 	// Apply filtering if configured
 	if cfg.filterFunc != nil {
@@ -105,6 +114,7 @@ type NestedDataProvider[T any] interface {
 //   - WithMaxDepth:     Limits tree depth during construction
 //   - WithExpandFunc:   Sets initial expansion state for nodes
 //   - WithTraversalCap: Limits total nodes processed (returns partial tree + error if exceeded)
+//   - WithProgressCallback: Invoked after each node creation (depth-first)
 //
 // Options used during a tree's runtime:
 //   - WithSearcher:     Custom search algorithm
@@ -156,8 +166,9 @@ func buildTreeFromNestedData[T any](ctx context.Context, items []T, provider Nes
 		}
 		n := NewNode(id, provider.Name(item), item)
 
-		// Increment node count
+		// Increment node count & report progress
 		nodeCount++
+		cfg.reportProgress(nodeCount, n)
 
 		// Check depth limit
 		if cfg.hasDepthLimitBeenReached(depth) {
@@ -236,6 +247,7 @@ type FlatDataProvider[T any] interface {
 //   - WithMaxDepth:     Limits tree depth after hierarchy is built
 //   - WithExpandFunc:   Sets initial expansion state for nodes
 //   - WithTraversalCap: Limits total nodes processed (returns partial tree + error if exceeded)
+//   - WithProgressCallback: Invoked after each node creation (flat pass order)
 //
 // Options used during a tree's runtime:
 //   - WithSearcher:     Custom search algorithm
@@ -298,6 +310,7 @@ func buildTreeFromFlatData[T any](ctx context.Context, items []T, provider FlatD
 		parentLookup[id] = provider.ParentID(item)
 		idToNode[id] = n
 		nodeCount++
+		cfg.reportProgress(nodeCount, n)
 	}
 
 	// Pass 2: Establish parent/child relationships and validate tree has no cycles
@@ -371,6 +384,7 @@ func detectCycle(childID, parentID string, parentLookup map[string]string) bool 
 //   - WithMaxDepth:     Limits tree depth during construction
 //   - WithExpandFunc:   Sets initial expansion state for nodes
 //   - WithTraversalCap: Limits total nodes processed (returns partial tree + error if exceeded)
+//   - WithProgressCallback: Invoked after each filesystem entry is processed (breadth-first per directory)
 //
 // Options used during a tree's runtime:
 //   - WithSearcher:     Custom search algorithm
@@ -424,6 +438,7 @@ func buildFileSystemTree(ctx context.Context, path string, followSymlinks bool, 
 
 	// Create the root node
 	rootNode := NewFileSystemNode(absPath, info)
+	cfg.reportProgress(1, rootNode)
 
 	// Apply initial expansion state if configured
 	cfg.handleExpansion(rootNode)
@@ -488,6 +503,7 @@ func scanDir(ctx context.Context, parent *Node[FileInfo], depth int, followSymli
 		// Increment and check traversal count
 		// This prevents runaway scans of huge directories
 		*count++
+		cfg.reportProgress(*count, childNode)
 		if cfg.hasTraversalCapBeenReached(*count) {
 			return pathError(ErrTraversalLimit, childPath, nil)
 		}

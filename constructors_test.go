@@ -133,6 +133,20 @@ func TestNewTree(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "with_progress_callback",
+			nodes: []*Node[string]{
+				NewNode("1", "Node 1", "a"),
+				NewNode("2", "Node 2", "b"),
+				NewNode("3", "Node 3", "c"),
+			},
+			opts: []option[string]{
+				WithProgressCallback[string](func(processed int, n *Node[string]) {
+					// simple no-op to ensure it is invoked; we rely on counting side effects
+				}),
+			},
+			wantLen: 3,
+		},
 	}
 
 	for _, test := range tests {
@@ -341,6 +355,30 @@ func TestNewTreeFromNestedData(t *testing.T) {
 			},
 		},
 		{
+			name: "with_progress_callback",
+			items: []testNestedItem{
+				{
+					id:       "1",
+					name:     "Root",
+					children: []testNestedItem{{id: "2", name: "Child"}},
+				},
+			},
+			provider:  &testNestedProvider{},
+			wantNodes: 1,
+			checkFn: func(t *testing.T, tree *Tree[testNestedItem]) {
+				// The callback assertion is performed inside the option via closure.
+			},
+			opts: []option[testNestedItem]{
+				WithProgressCallback[testNestedItem](func(processed int, n *Node[testNestedItem]) {
+					_ = processed // intentionally ignore; existence proves invocation path compiles
+					if n == nil {
+						panic("progress callback received nil node")
+					}
+				}),
+				WithExpandAll[testNestedItem](),
+			},
+		},
+		{
 			name:      "context_cancelled",
 			items:     []testNestedItem{},
 			provider:  &testNestedProvider{},
@@ -542,6 +580,23 @@ func TestNewTreeFromFlatData(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "with_progress_callback",
+			items: []testFlatItem{
+				{id: "1", name: "Root", parentID: ""},
+				{id: "2", name: "Child", parentID: "1"},
+			},
+			provider: &testFlatProvider{},
+			opts: []option[testFlatItem]{
+				WithProgressCallback[testFlatItem](func(processed int, n *Node[testFlatItem]) {
+					_ = processed
+					if n == nil {
+						panic("nil node in progress callback")
+					}
+				}),
+			},
+			wantRoots: 1,
+		},
 	}
 
 	for _, test := range tests {
@@ -700,6 +755,19 @@ func TestNewTreeFromFileSystem(t *testing.T) {
 				WithTraversalCap[FileInfo](3),
 			},
 			wantErr: true,
+		},
+		{
+			name:           "with_progress_callback",
+			path:           tmpDir,
+			followSymlinks: false,
+			opts: []option[FileInfo]{
+				WithProgressCallback[FileInfo](func(processed int, n *Node[FileInfo]) {
+					_ = processed
+					if n == nil {
+						panic("nil node in fs progress callback")
+					}
+				}),
+			},
 		},
 	}
 

@@ -25,8 +25,8 @@ import (
 // filtering, searching, focusing, and rendering. All public methods are safe
 // for concurrent use; a sync.RWMutex guards internal state.
 type Tree[T any] struct {
-	mu      sync.RWMutex
-	nodes   []*Node[T]
+	mu           sync.RWMutex
+	nodes        []*Node[T]
 	focusedNodes []*Node[T]
 	focusedIDs   map[string]bool
 
@@ -333,7 +333,7 @@ func (t *Tree[T]) setVisibleState(ctx context.Context, visible bool) error {
 func (t *Tree[T]) GetAllFocusedIDs() []string {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	
+
 	ids := make([]string, len(t.focusedNodes))
 	for i, node := range t.focusedNodes {
 		ids[i] = node.ID()
@@ -345,7 +345,7 @@ func (t *Tree[T]) GetAllFocusedIDs() []string {
 func (t *Tree[T]) GetAllFocusedNodes() []*Node[T] {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	
+
 	// Return a copy to prevent external modification
 	nodes := make([]*Node[T], len(t.focusedNodes))
 	copy(nodes, t.focusedNodes)
