@@ -43,6 +43,14 @@ func (t *Tree[T]) Nodes() []*Node[T] {
 	return t.nodes
 }
 
+// SetNodes replaces the root nodes of the tree. This is useful for removing
+// root nodes or restructuring the tree. The operation is thread-safe.
+func (t *Tree[T]) SetNodes(nodes []*Node[T]) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.nodes = nodes
+}
+
 // GetFocusedID returns the ID of the currently focused node or "" if none.
 func (t *Tree[T]) GetFocusedID() string {
 	t.mu.RLock()
