@@ -162,7 +162,7 @@ func TestRenderNode(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := renderNode(test.provider, test.node, test.prefix, test.isFocused)
+			got, err := renderNode(test.provider, test.node, test.prefix, test.isFocused, 0)
 
 			if (err != nil) != test.wantErr {
 				t.Errorf("renderNode() error = %v, wantErr %v", err, test.wantErr)
