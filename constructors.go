@@ -68,12 +68,13 @@ func newTree[T any](nodes []*Node[T], cfg *masterConfig[T]) *Tree[T] {
 
 	// Create the tree with default components
 	t := &Tree[T]{
-		nodes:        nodes,
-		focusedNodes: focusedNodes,
-		focusedIDs:   focusedIDs,
-		searcher:     cfg.searcher,
-		focusPol:     cfg.focusPol,
-		provider:     cfg.provider,
+		nodes:         nodes,
+		focusedNodes:  focusedNodes,
+		focusedIDs:    focusedIDs,
+		searcher:      cfg.searcher,
+		focusPol:      cfg.focusPol,
+		provider:      cfg.provider,
+		truncateWidth: cfg.truncateWidth,
 	}
 	return t
 }

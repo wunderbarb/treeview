@@ -99,6 +99,15 @@ func WithProgressCallback[T any](cb ProgressCallback[T]) option[T] {
 	}
 }
 
+// WithTruncate sets the maximum width for rendered lines. Lines longer than
+// this width will be truncated with an ellipsis. A width of 0 disables
+// truncation (default).
+func WithTruncate[T any](width int) option[T] {
+	return func(c *masterConfig[T]) {
+		c.truncateWidth = width
+	}
+}
+
 // masterConfig is the internal, unexported struct that aggregates options from
 // different domains (build, filesystem, tree). It is used by the unified
 // constructors to collect and dispatch options to the appropriate internal
@@ -112,9 +121,10 @@ type masterConfig[T any] struct {
 	progressCb   ProgressCallback[T] // Optional progress reporting during construction.
 
 	// Options passed to the final tree.
-	searcher SearchFn[T]
-	focusPol FocusPolicyFn[T]
-	provider NodeProvider[T]
+	searcher      SearchFn[T]
+	focusPol      FocusPolicyFn[T]
+	provider      NodeProvider[T]
+	truncateWidth int // Maximum width for rendered lines (0 = no truncation)
 }
 
 // newMasterConfig is a helper that creates a masterConfig, applies defaults, and then user-provided options.

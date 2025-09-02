@@ -461,4 +461,9 @@ func (m *TuiTreeModel[T]) updateViewportDimensions() {
 
 	m.viewport.Width = m.width
 	m.viewport.Height = viewHeight
+
+	// Update tree truncation width to match viewport width
+	m.Tree.mu.Lock()
+	m.Tree.truncateWidth = m.width
+	m.Tree.mu.Unlock()
 }

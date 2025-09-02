@@ -33,6 +33,10 @@ type Tree[T any] struct {
 	searcher SearchFn[T]
 	focusPol FocusPolicyFn[T]
 	provider NodeProvider[T]
+
+	// truncateWidth specifies the maximum width for rendered lines.
+	// 0 means no truncation (default).
+	truncateWidth int
 }
 
 // Nodes returns the current root slice. The caller must treat the returned

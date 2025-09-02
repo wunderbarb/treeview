@@ -2,8 +2,10 @@ package treeview
 
 import (
 	"context"
+	"regexp"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/mattn/go-runewidth"
@@ -11,12 +13,91 @@ import (
 
 var sbPool = sync.Pool{New: func() any { return new(strings.Builder) }}
 
+// ansiRegex matches ANSI escape sequences
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+
+// stripANSI removes ANSI escape sequences from a string
+func stripANSI(s string) string {
+	return ansiRegex.ReplaceAllString(s, "")
+}
+
+// visualWidth calculates the display width of a string, accounting for ANSI codes
+func visualWidth(s string) int {
+	// Remove ANSI codes before calculating width
+	plain := stripANSI(s)
+	return runewidth.StringWidth(plain)
+}
+
+// truncateLine truncates a line to fit within maxWidth, adding ellipsis if needed
+func truncateLine(line string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return line
+	}
+
+	width := visualWidth(line)
+	if width <= maxWidth {
+		return line
+	}
+
+	// We need to truncate. Reserve 3 characters for ellipsis
+	if maxWidth <= 3 {
+		return "..."
+	}
+
+	targetWidth := maxWidth - 3
+
+	// Find ANSI sequences to preserve styling (work with byte indices)
+	ansiParts := ansiRegex.FindAllStringIndex(line, -1)
+
+	// Build the truncated string byte by byte
+	var result strings.Builder
+	currentWidth := 0
+	bytes := []byte(line)
+	ansiIdx := 0
+	i := 0
+
+	for i < len(bytes) {
+		// Check if we're at an ANSI sequence
+		if ansiIdx < len(ansiParts) && i == ansiParts[ansiIdx][0] {
+			// Add the ANSI sequence (doesn't affect width)
+			end := ansiParts[ansiIdx][1]
+			result.Write(bytes[i:end])
+			i = end
+			ansiIdx++
+			continue
+		}
+
+		// Decode the next rune
+		r, size := utf8.DecodeRune(bytes[i:])
+		charWidth := runewidth.RuneWidth(r)
+
+		if currentWidth+charWidth > targetWidth {
+			// Stop here and add ellipsis
+			break
+		}
+
+		result.Write(bytes[i : i+size])
+		currentWidth += charWidth
+		i += size
+	}
+
+	// Add ellipsis
+	result.WriteString("...")
+
+	// Add any remaining ANSI reset codes if they exist at the end of the original string
+	if strings.HasSuffix(line, "\x1b[0m") {
+		result.WriteString("\x1b[0m")
+	}
+
+	return result.String()
+}
+
 // renderNode implements the NodeRenderer interface. It asks the NodeProvider
 // for icon, label, and style information, then returns the final string for a
 // single line including tree-branch glyphs.
 //
 // The function is fast and does not allocate beyond what the provider allocates.
-func renderNode[T any](provider NodeProvider[T], node *Node[T], prefix string, isFocused bool) (string, error) {
+func renderNode[T any](provider NodeProvider[T], node *Node[T], prefix string, isFocused bool, maxWidth int) (string, error) {
 	// Get the icon from the provider and ensure consistent width
 	// This keeps the tree aligned even with different icon widths
 	icon := NormalizeIconWidth(provider.Icon(node))
@@ -29,7 +110,10 @@ func renderNode[T any](provider NodeProvider[T], node *Node[T], prefix string, i
 
 	// Combine all parts and apply the style
 	// Result: "│   └── 📁 folder-name/" (styled)
-	return style.Render(prefix + icon + displayText), nil
+	result := style.Render(prefix + icon + displayText)
+
+	// Apply truncation if maxWidth is set
+	return truncateLine(result, maxWidth), nil
 }
 
 // renderTree walks the tree, turns every visible node into a line.
@@ -89,7 +173,7 @@ func renderTree[T any](ctx context.Context, tree *Tree[T]) (string, int, error) 
 		}
 
 		// Render the actual node content
-		line, err := renderNode(tree.provider, node, prefix, isFocused)
+		line, err := renderNode(tree.provider, node, prefix, isFocused, tree.truncateWidth)
 		if err != nil {
 			return sb.String(), focusedLineIndex, err
 		}
@@ -218,7 +302,7 @@ func renderViewportOnly[T any](ctx context.Context, tree *Tree[T], vp *viewport.
 			isFocused := tree.IsFocused(node.ID())
 
 			// Render the actual node content
-			line, err := renderNode(tree.provider, node, prefix, isFocused)
+			line, err := renderNode(tree.provider, node, prefix, isFocused, tree.truncateWidth)
 			if err != nil {
 				return sb.String(), currentLine, err
 			}
