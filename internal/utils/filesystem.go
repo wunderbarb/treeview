@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"syscall"
 )
 
 // ResolvePath resolves the path to an absolute path, handling `~`, `..`, `.` expansion
@@ -71,31 +69,4 @@ func SafeStat(path string, follow bool, visited map[string]struct{}) (os.FileInf
 	// Mark this inode as visited
 	visited[key] = struct{}{}
 	return info, nil
-}
-
-// inodeKey returns a unique key for the given FileInfo to detect symlink loops.
-//
-// On Unix-like systems (Linux, macOS, etc.), it uses the device and inode
-// numbers which provide a stable unique identifier for each file.
-//
-// On Windows, it falls back to a composite key using file attributes since
-// Windows does not expose inode numbers directly.
-func inodeKey(info os.FileInfo) (string, error) {
-	if info == nil {
-		return "", fmt.Errorf("nil FileInfo")
-	}
-
-	if strings.Contains(runtime.GOOS, "windows") {
-		// Windows: Use name + size + modTime as a weak unique key
-		return fmt.Sprintf("%s:%d:%d", info.Name(), info.Size(), info.ModTime().UnixNano()), nil
-	}
-
-	// Unix-like systems: Use device and inode numbers as unique identifier
-	stat, ok := info.Sys().(*syscall.Stat_t)
-	if !ok {
-		// Fallback if type assertion fails
-		return fmt.Sprintf("fallback:%s_%d", info.Name(), info.ModTime().UnixNano()), nil
-	}
-
-	return fmt.Sprintf("dev:%d_ino:%d", stat.Dev, stat.Ino), nil
 }
