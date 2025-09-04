@@ -85,17 +85,6 @@ func TestSetEndPointURLForLambda(t *testing.T) {
 	assert.Equal("http://"+adr+":4566", GetEndPointURL())
 }
 
-func TestCreateLambdaFunction(t *testing.T) {
-	require, assert := test.Describe(t)
-
-	functionARN, err := CreateLambdaFunction("hello", filepath.Join("..", "lambda", "handler.zip"))
-	require.NoError(err)
-	assert.NotEmpty(functionARN)
-	require.NoError(DeleteLambdaFunction("hello"))
-	_, err = CreateLambdaFunction("hello1", "bad.zip")
-	assert.Error(err)
-}
-
 func isPanic(err error) {
 	if err != nil {
 		panic(err)

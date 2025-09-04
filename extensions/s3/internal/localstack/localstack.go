@@ -1,6 +1,6 @@
-// v0.8.1
+// v0.9.0
 // Author: wunderbarb
-//  Feb 2025
+// Sep 2025
 
 package localstack
 
@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -21,6 +20,8 @@ import (
 const (
 	// DefaultRegion is the default region used by localstack.
 	DefaultRegion = "us-west-2"
+	// Endpoint is the localstack endpoint.
+	Endpoint = "http://localhost:4566"
 )
 
 const _localstackURL = "https://localhost.localstack.cloud:4566"
@@ -72,101 +73,6 @@ func CreateBucketAt(bktName string, region string, opt ...Option) error {
 	return err
 }
 
-type funcAnswer struct {
-	FunctionName string `json:"FunctionName"`
-	FunctionArn  string `json:"FunctionArn"`
-	// Runtime      string `json:"Runtime"`
-	// Role         string `json:"Role"`
-	// Handler      string `json:"Handler"`
-	// CodeSize     int    `json:"CodeSize"`
-	// Description  string `json:"Description"`
-	// Timeout      int    `json:"Timeout"`
-	// LastModified string `json:"LastModified"`
-	// CodeSha256   string `json:"CodeSha256"`
-	// Version      string `json:"Version"`
-	// VpcConfig    struct {
-	// } `json:"VpcConfig"`
-	// TracingConfig struct {
-	// 	Mode string `json:"Mode"`
-	// } `json:"TracingConfig"`
-	// RevisionId       string `json:"RevisionId"`
-	// State            string `json:"State"`
-	// LastUpdateStatus string `json:"LastUpdateStatus"`
-	// PackageType      string `json:"PackageType"`
-}
-
-type answer struct {
-	Functions []funcAnswer `json:"Functions"`
-}
-
-// CreateLambdaFunction creates the lambda function `functionName` with the runtime provided.al2023 on the `localstack` using
-// the zipped file `zipFilePath`.  It returns the address of the function.  Furthermore, it sets the function to use
-// localstack automatically. The timeout is set to 900 seconds.
-// If the function already exists, it is updated with the provided parameters.
-// Exclusively for testing purpose.
-// It supports option environmental WithEnvironmentVariable.
-func CreateLambdaFunction(functionName string, zipFilePath string, opts ...Option) (string, error) {
-	v := collectOptions(opts...).getEnv()
-	abs, err := filepath.Abs(zipFilePath)
-	if err != nil {
-		return "", err
-	}
-	data, err := Call("lambda", "list-functions")
-	if err != nil {
-		return "", err
-	}
-	var a answer
-	err = json.Unmarshal(data, &a)
-	if err != nil {
-		return "", err
-	}
-	var found bool
-	for _, f := range a.Functions {
-		if f.FunctionName == functionName {
-			found = true
-			break
-		}
-	}
-	switch found {
-	case false:
-		data, err = Call("lambda", "create-function", "--function-name", functionName,
-			"--environment", v,
-			"--runtime", "provided.al2023",
-			"--timeout", "900",
-			"--role", "arn:aws:iam::123456789012:role/fake-role",
-			"--handler", "bootstrap", "--zip-file", "fileb://"+abs)
-		if err != nil {
-			return "", err
-			// The error was that the function already existed.
-		}
-	case true:
-		data, err = Call("lambda", "update-function-code", "--function-name", functionName, "--zip-file",
-			"fileb://"+abs)
-		if err != nil {
-			return "", err
-		}
-		if len(v) != 0 {
-			_, err = Call("lambda", "update-function-configuration", "--function-name", functionName,
-				"--environment", v)
-			if err != nil {
-				return "", err
-			}
-		}
-	}
-	var af funcAnswer
-	err = json.Unmarshal(data, &af)
-	if err != nil {
-		return "", err
-	}
-
-	// https://docs.localstack.cloud/references/lambda-provider-v2/#function-in-pending-state
-	_, err = Call("lambda", "wait", "function-active-v2", "--function-name", functionName)
-	if err != nil {
-		return "", err
-	}
-	return af.FunctionArn, nil
-}
-
 // DeleteBucket deletes the bucket `bktName` on the localstack.
 func DeleteBucket(bktName string) error {
 	return DeleteBucketAt(bktName, DefaultRegion)
@@ -207,15 +113,6 @@ func DeleteBucketAt(bktName string, region string) error {
 	return err
 }
 
-// DeleteLambdaFunction deletes the lambda function `functionName` on the localstack.
-func DeleteLambdaFunction(functionName string) error {
-	_, err := Call("lambda", "delete-function", "--function-name", functionName)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // GetEndPointURL returns the current endpoint URL of the localstack.
 func GetEndPointURL() string {
 	return strings.TrimPrefix(_endpointURL, "--endpoint-url=")
@@ -223,7 +120,7 @@ func GetEndPointURL() string {
 
 // IsBucketNameValid returns true if the bucket name is syntactically valid.
 func IsBucketNameValid(b string) bool {
-	return regexp.MustCompile(`^[a-z0-9.\-]+$`).MatchString(b) && !(len(b) < 1 || len(b) > 63)
+	return regexp.MustCompile(`^[a-z0-9.\-]+$`).MatchString(b) && len(b) >= 1 && len(b) <= 63
 }
 
 // IsExist checks whether the object `objectPath` exists on the localstack.

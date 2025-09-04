@@ -1,6 +1,6 @@
-// v0.9.1
+// v0.9.2
 // Author: wunderbarb
-//  Sep 2025
+// Sep 2025
 
 package s3
 
@@ -133,44 +133,19 @@ func hasAccess(ctx context.Context, path string, opts ...Option) bool {
 	return false
 }
 
-// isExist informs whether an object, a directory, or a bucket exists.  Trailing `/` is treated as a directory
-// and will be true if the prefix exists.  To check accessibility to a prefix, HasAccess should be used, although it
-// may be slower.
-//
-// It supports the option WithProfile.
-func isExist(ctx context.Context, path string, opts ...Option) bool {
-	b, p := Parse(path)
-	c, err := newClientForBucket(b, opts...)
-	if err != nil {
-		return false
-	}
-	if p != "" {
-		p = strings.TrimSuffix(p, "/")
-		_, err := c.HeadObject(ctx, &awsS3.HeadObjectInput{
-			Bucket: aws.String(b),
-			Key:    aws.String(p),
-		})
-		if err != nil {
-			return IsDir1(ctx, path)
-		}
-		return true
-	}
-	_, err = c.HeadBucket(ctx, &awsS3.HeadBucketInput{Bucket: aws.String(b)})
-	return err == nil
-}
-
 // newClient creates a new client of the default configuration initialized by the package with the options `opts`.
 func newClient(opts ...config.LoadOptionsFunc) (*awsS3.Client, error) {
 	cfg1, err := config2.NewConfig(opts...)
 	if err != nil {
 		return nil, err
 	}
-	// return awsS3.NewFromConfig(cfg1,
-	// 	func(o *awsS3.Options) {
-	// 		// to suppress a annoying warning https://tsak.dev/posts/aws-sdk-suppress-checksum-warning/
-	// 		o.DisableLogOutputChecksumValidationSkipped = true
-	// 	}), nil
-	return awsS3.NewFromConfig(cfg1), nil
+	if !localstack.InUse() {
+		return awsS3.NewFromConfig(cfg1), nil
+	}
+	return awsS3.NewFromConfig(cfg1, func(o *awsS3.Options) {
+		o.UsePathStyle = true
+		o.BaseEndpoint = aws.String(localstack.Endpoint)
+	}), nil
 }
 
 // newClientForBucket creates a new client of the default configuration for the bucket `bucket`.  It supports the option

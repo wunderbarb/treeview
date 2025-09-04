@@ -1,11 +1,10 @@
-// v0.2.4
+// v0.2.5
 // Author: wunderbarb
-//  Jul 2022
+// Sep 2025
 
 package s3
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,10 +12,9 @@ import (
 
 const (
 	_cS3URI = "s3://"
-	_dbg    = false // debug printer flag
 )
 
-// Parse returns the bucket name and the key of  `path`
+// Parse returns the bucket name and the key of `path`
 func Parse(path string) (string, string) {
 	const (
 		cNumEle = 2
@@ -38,10 +36,4 @@ func UnParse(bucket string, key string) string {
 func parse1(path string) (*string, *string) {
 	a, b := Parse(path)
 	return aws.String(a), aws.String(b)
-}
-
-func dbg(msg string, args ...interface{}) {
-	if _dbg {
-		fmt.Println(msg, args)
-	}
 }

@@ -6,6 +6,7 @@
 package exec
 
 import (
+	"context"
 	"os/exec"
 
 	"github.com/pterm/pterm"
@@ -23,7 +24,7 @@ func Run(app string, opts ...Option) ([]byte, error) {
 	}
 	app1 := app
 	for {
-		cmd := exec.Command(app1, appOpts.args...)
+		cmd := exec.CommandContext(context.Background(), app1, appOpts.args...)
 		if !appOpts.verbose {
 			data, err = cmd.Output()
 		} else {

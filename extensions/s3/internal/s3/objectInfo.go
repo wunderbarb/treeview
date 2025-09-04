@@ -21,9 +21,9 @@ type ObjectInfo struct {
 	isDir        bool
 }
 
-// Info1 returns the ObjectInfo of the object at `path`.  If it is a directory, then IsDir() is true and Size() and
+// Info returns the ObjectInfo of the object at `path`.  If it is a directory, then IsDir() is true and Size() and
 // ModTime() is meaningless.
-func Info1(ctx context.Context, path string, opts ...Option) (*ObjectInfo, error) {
+func Info(ctx context.Context, path string, opts ...Option) (*ObjectInfo, error) {
 	if !HasAccess(ctx, path, opts...) {
 		return nil, ErrNoAccess
 	}
@@ -63,8 +63,9 @@ func (oi *ObjectInfo) Name() string {
 
 // Mode is mandatory for the fs.FileInfo interface.
 func (oi *ObjectInfo) Mode() fs.FileMode {
+	const defaultMode = 0o755
 	if oi.isDir {
-		return fs.ModeDir | 0755
+		return fs.ModeDir | defaultMode
 	}
 	return fs.ModeIrregular
 }

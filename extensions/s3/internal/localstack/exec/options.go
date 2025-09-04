@@ -6,10 +6,6 @@
 // universal that operates files and objects seamlessly.
 package exec
 
-import (
-	"time"
-)
-
 // options is the structure managing the options of the function Run.
 type options struct {
 	args        []string
@@ -17,7 +13,6 @@ type options struct {
 	testValue   bool
 	retry       bool
 	retryNumber int
-	retryDelay  time.Duration
 }
 
 // Option allows parameterizing the Run function.

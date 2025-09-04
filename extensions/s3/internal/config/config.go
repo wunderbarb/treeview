@@ -6,13 +6,11 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/pkg/errors"
 )
 
@@ -30,20 +28,20 @@ const (
 	_cFaultyRegion = "faulty-region-1"
 )
 
-// CfgLocalstack is the configuration used for `localstack`.
-// For testing purpose exclusively.
-var CfgLocalstack = []config.LoadOptionsFunc{
-	config.WithEndpointResolver(aws.EndpointResolverFunc(
-		func(service, region string) (aws.Endpoint, error) {
-			e, ok := os.LookupEnv("LOCALSTACK_HOSTNAME")
-			if !ok {
-				e = "localhost"
-			}
-			endpointURL := fmt.Sprintf("http://%s:4566", e)
-			return aws.Endpoint{URL: endpointURL, SigningRegion: "us-west-2", HostnameImmutable: true}, nil
-		})),
-	config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "dummy")),
-}
+// // CfgLocalstack is the configuration used for `localstack`.
+// // For testing purpose exclusively.
+// var CfgLocalstack = []config.LoadOptionsFunc{
+// 	config.WithEndpointResolver(aws.EndpointResolverFunc(
+// 		func(service, region string) (aws.Endpoint, error) {
+// 			e, ok := os.LookupEnv("LOCALSTACK_HOSTNAME")
+// 			if !ok {
+// 				e = "localhost"
+// 			}
+// 			endpointURL := fmt.Sprintf("http://%s:4566", e)
+// 			return aws.Endpoint{URL: endpointURL, SigningRegion: "us-west-2", HostnameImmutable: true}, nil
+// 		})),
+// 	config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "dummy")),
+// }
 
 // _cached is the cached configuration to avoid throttling when using EC2 IMDSv2.
 var _cached cache
@@ -75,17 +73,17 @@ func NewConfig(opts ...config.LoadOptionsFunc) (cfg aws.Config, err error) {
 		err = errors.New("faulty configuration")
 		return aws.Config{}, err
 	}
-	if os.Getenv(Env) == "" {
-		return setCached(cfg, err)
-	}
+	// if os.Getenv(Env) == "" {
+	// 	return setCached(cfg, err)
+	// }
 	if os.Getenv(EnvFaulty) != "" {
 		return cfg, errors.New("faulty configuration")
 	}
-	opa = opa[:0]
-	for _, opt := range CfgLocalstack {
-		opa = append(opa, opt)
-	}
-	cfg, err = config.LoadDefaultConfig(context.Background(), opa...)
+	// opa = opa[:0]
+	// for _, opt := range CfgLocalstack {
+	// 	opa = append(opa, opt)
+	// }
+	// cfg, err = config.LoadDefaultConfig(context.Background(), opa...)
 	return setCached(cfg, err)
 }
 

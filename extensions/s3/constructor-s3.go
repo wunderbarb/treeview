@@ -38,17 +38,16 @@ func NewTreeFromS3(ctx context.Context, path string, followSymlinks bool,
 
 func buildFileSystemTree4S3(ctx context.Context, path string, followSymlinks bool,
 	cfg *treeview.MasterConfig[treeview.FileInfo]) ([]*treeview.Node[treeview.FileInfo], error) {
-	info, err := s3.Info1(ctx, path, s3.WithProfile("default"))
+	info, err := s3.Info(ctx, path, s3.WithProfile("default"))
 	if err != nil {
 		return nil, pathError(treeview.ErrPathResolution, path, err)
 	}
 	absPath := path
-	visited := make(map[string]struct{})
 	total := 1
 	rootNode := treeview.NewFileSystemNode(absPath, info)
 	cfg.HandleExpansion(rootNode)
 	if info.IsDir() {
-		if err := scanDirS3(ctx, rootNode, 0, followSymlinks, cfg, visited, &total); err != nil {
+		if err := scanDirS3(ctx, rootNode, 0, followSymlinks, cfg, &total); err != nil {
 			return nil, err
 		}
 	}
@@ -58,7 +57,7 @@ func buildFileSystemTree4S3(ctx context.Context, path string, followSymlinks boo
 // scanDirS3 scans a bucket or key and its subdirectories, creating Node[treeview.FileInfo] for each entry.
 // It returns an error if the traversal cap is exceeded or if there is an error.
 func scanDirS3(ctx context.Context, parent *treeview.Node[treeview.FileInfo], depth int, followSymlinks bool,
-	cfg *treeview.MasterConfig[treeview.FileInfo], visited map[string]struct{}, count *int) error {
+	cfg *treeview.MasterConfig[treeview.FileInfo], count *int) error {
 	if cfg.HasDepthLimitBeenReached(depth) {
 		return nil
 	}
@@ -90,7 +89,7 @@ func scanDirS3(ctx context.Context, parent *treeview.Node[treeview.FileInfo], de
 			return pathError(treeview.ErrTraversalLimit, childPath, nil)
 		}
 		if info.IsDir() {
-			if err := scanDirS3(ctx, childNode, depth+1, followSymlinks, cfg, visited, count); err != nil {
+			if err := scanDirS3(ctx, childNode, depth+1, followSymlinks, cfg, count); err != nil {
 				return err
 			}
 		}

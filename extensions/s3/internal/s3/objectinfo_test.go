@@ -14,17 +14,17 @@ import (
 func TestInfo1(t *testing.T) {
 	require, assert := test.Describe(t)
 
-	oi, err := Info1(context.Background(), _cs3Testdata)
+	oi, err := Info(context.Background(), _cs3Testdata)
 	require.NoError(err)
 	require.NotNil(oi)
 	assert.True(oi.IsDir())
 
-	oi, err = Info1(context.Background(), _cS3)
+	oi, err = Info(context.Background(), _cS3)
 	require.NoError(err)
 	require.NotNil(oi)
 	assert.True(oi.IsDir())
 
-	oi, err = Info1(context.Background(), _cGolden100K)
+	oi, err = Info(context.Background(), _cGolden100K)
 	require.NoError(err)
 	require.NotNil(oi)
 	assert.False(oi.IsDir())
