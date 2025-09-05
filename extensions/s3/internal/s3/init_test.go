@@ -14,15 +14,14 @@ import (
 )
 
 const (
-	_myTestBucket    = "wunderbarb.example.com"
-	_cS3             = _cS3URI + _myTestBucket
-	_cTestBucketEast = _cS3URI + "seff-test-thebride"
-	_cs3Testdata     = _cS3 + "/testdata"
-	_c100K           = "sample100K.golden"
-	_c1M             = "sample1M.golden"
-	_cGolden100K     = _cs3Testdata + "/golden/" + _c100K
-	_cGolden1M       = _cs3Testdata + "/golden/" + _c1M
-	K                = 1024
+	_myTestBucket = "wunderbarb.example.com"
+	_cS3          = _cS3URI + _myTestBucket
+	_cs3Testdata  = _cS3 + "/testdata"
+	_c100K        = "sample100K.golden"
+	_c1M          = "sample1M.golden"
+	_cGolden100K  = _cs3Testdata + "/golden/" + _c100K
+	_cGolden1M    = _cs3Testdata + "/golden/" + _c1M
+	K             = 1024
 )
 
 var _goldenDirPath string
@@ -37,7 +36,6 @@ func TestMain(m *testing.M) {
 
 	_goldenDirPath = filepath.Join("internal", "testfixtures")
 	_ = localstack.CreateBucket(_myTestBucket, localstack.WithNoErrorIfExist())
-	_ = localstack.CreateBucket(_cTestBucketEast, localstack.WithNoErrorIfExist())
 	_ = localstack.PutObject(_cGolden100K, filepath.Join(_goldenDirPath, _c100K))
 	_ = localstack.PutObject(_cGolden1M, filepath.Join(_goldenDirPath, _c1M))
 	_ = localstack.PutObject(_cs3Testdata+"/golden/recurse/"+_c100K, filepath.Join(_goldenDirPath, _c100K))

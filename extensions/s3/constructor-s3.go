@@ -14,21 +14,27 @@ import (
 // ErrNotYetSupported indicates that a feature or functionality is not currently supported.
 var ErrNotYetSupported = errors.New("not yet supported")
 
+// InputTreeFromS3 is the structure that defines the S3 URI to explore.
+type InputTreeFromS3 struct {
+	// Path is the S3 URI in the format s3://<bucket>/<Key> or s3://<bucket>/
+	Path string
+	// Profile is the AWS profile to use.  If not defined, it uses default.
+	Profile string
+	// determines whether symbolic links should be followed during traversal.
+	FollowSymlinks bool
+}
+
 // NewTreeFromS3 creates a new tree structure based on files fetched from an S3 path, using configurable options.
-// ctx provides the context for cancellation or deadlines during processing.
-// path specifies the S3 bucket or object path to be used as the root of the tree.
-// followSymlinks determines whether symbolic links should be followed during traversal.
-// opts parameters customize the tree creation via configuration options.
 // Returns a pointer to a Tree structure or an error if an issue occurs during tree creation.
-func NewTreeFromS3(ctx context.Context, path string, followSymlinks bool,
+func NewTreeFromS3(ctx context.Context, itf *InputTreeFromS3,
 	opts ...treeview.Option[treeview.FileInfo]) (*treeview.Tree[treeview.FileInfo], error) {
-	if followSymlinks {
+	if itf.FollowSymlinks {
 		return nil, ErrNotYetSupported
 	}
 	cfg := treeview.NewMasterConfig(opts, treeview.WithProvider[treeview.FileInfo](treeview.NewDefaultNodeProvider(
 		treeview.WithFileExtensionRules[treeview.FileInfo](),
 	)))
-	nodes, err := buildFileSystemTree4S3(ctx, path, followSymlinks, cfg)
+	nodes, err := buildFileSystemTree4S3(ctx, itf, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", treeview.ErrFileSystem, err)
 	}
@@ -36,18 +42,20 @@ func NewTreeFromS3(ctx context.Context, path string, followSymlinks bool,
 	return tree, nil
 }
 
-func buildFileSystemTree4S3(ctx context.Context, path string, followSymlinks bool,
+func buildFileSystemTree4S3(ctx context.Context, itf *InputTreeFromS3,
 	cfg *treeview.MasterConfig[treeview.FileInfo]) ([]*treeview.Node[treeview.FileInfo], error) {
-	info, err := s3.Info(ctx, path, s3.WithProfile("default"))
-	if err != nil {
-		return nil, pathError(treeview.ErrPathResolution, path, err)
+	if itf.Profile == "" {
+		itf.Profile = "default"
 	}
-	absPath := path
+	info, err := s3.Info(ctx, itf.Path, s3.WithProfile(itf.Profile))
+	if err != nil {
+		return nil, pathError(treeview.ErrPathResolution, itf.Path, err)
+	}
 	total := 1
-	rootNode := treeview.NewFileSystemNode(absPath, info)
+	rootNode := treeview.NewFileSystemNode(itf.Path, info)
 	cfg.HandleExpansion(rootNode)
 	if info.IsDir() {
-		if err := scanDirS3(ctx, rootNode, 0, followSymlinks, cfg, &total); err != nil {
+		if err := scanDirS3(ctx, rootNode, 0, itf.FollowSymlinks, cfg, &total); err != nil {
 			return nil, err
 		}
 	}

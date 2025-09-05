@@ -58,10 +58,10 @@ func WithProfile(p string) Option {
 
 // WithRetry indicates that the operation must use a retry strategy
 // with a maximum number of attempts `max` with a minimal delay `lapse`
-func WithRetry(max int, lapse time.Duration, trigger ...string) Option {
+func WithRetry(maxAtt int, lapse time.Duration, trigger ...string) Option {
 	return func(op *options) {
 		op.retrying = true
-		op.retryMaxAttempt = max
+		op.retryMaxAttempt = maxAtt
 		op.retryLapse = lapse
 		op.triggers = append(op.triggers, trigger...)
 	}

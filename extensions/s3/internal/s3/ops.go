@@ -142,6 +142,7 @@ func newClient(opts ...config.LoadOptionsFunc) (*awsS3.Client, error) {
 	if !localstack.InUse() {
 		return awsS3.NewFromConfig(cfg1), nil
 	}
+	// See https://docs.localstack.cloud/aws/integrations/aws-sdks/go/
 	return awsS3.NewFromConfig(cfg1, func(o *awsS3.Options) {
 		o.UsePathStyle = true
 		o.BaseEndpoint = aws.String(localstack.Endpoint)

@@ -49,17 +49,12 @@ var _cached cache
 // NewConfig returns a configuration with the given options.  If there are no option, it is the default configuration.
 // The supported options are `WithLocalStack`.
 func NewConfig(opts ...config.LoadOptionsFunc) (cfg aws.Config, err error) {
-	cfg, ok := _cached.get()
-	if ok {
-		return cfg, nil
-	}
 	var opa []func(loadOptions *config.LoadOptions) error
 	const cDefaultRegion = "us-west-2" // The default region used if the configuration does not define a region.
 	for _, opt := range opts {
 		opa = append(opa, opt)
 	}
 	if os.Getenv(AwsProfile) != "" {
-		// opa = opa[:0]
 		opa = append(opa, config.WithSharedConfigProfile(os.Getenv(AwsProfile)))
 	}
 	cfg, err = config.LoadDefaultConfig(context.Background(), opa...)
@@ -73,17 +68,9 @@ func NewConfig(opts ...config.LoadOptionsFunc) (cfg aws.Config, err error) {
 		err = errors.New("faulty configuration")
 		return aws.Config{}, err
 	}
-	// if os.Getenv(Env) == "" {
-	// 	return setCached(cfg, err)
-	// }
 	if os.Getenv(EnvFaulty) != "" {
 		return cfg, errors.New("faulty configuration")
 	}
-	// opa = opa[:0]
-	// for _, opt := range CfgLocalstack {
-	// 	opa = append(opa, opt)
-	// }
-	// cfg, err = config.LoadDefaultConfig(context.Background(), opa...)
 	return setCached(cfg, err)
 }
 

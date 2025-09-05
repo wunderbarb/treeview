@@ -10,36 +10,22 @@ import (
 
 	"github.com/wunderbarb/test"
 
-	"github.com/Digital-Shane/treeview/extensions/s3/internal/localstack"
+	"github.com/Digital-Shane/treeview/extensions/s3/internal/s3"
 )
 
 func TestNewTreeFromS3(t *testing.T) {
 	require, assert := test.Describe(t)
 
-	tr, err := NewTreeFromS3(context.Background(), _cs3Testdata, false)
+	tr, err := NewTreeFromS3(context.Background(), &InputTreeFromS3{Path: _cs3Testdata})
 	require.NoError(err)
 	require.NotNil(tr)
 	assert.Len(tr.Nodes(), 1)
 	assert.Len(tr.Nodes()[0].Children(), 1)
 	assert.Len(tr.Nodes()[0].Children()[0].Children(), 3)
 
-	tr, err = NewTreeFromS3(context.Background(), _cs3Testdata+"/golden/recurse", false)
+	tr, err = NewTreeFromS3(context.Background(), &InputTreeFromS3{Path: s3.Join(_cs3Testdata, "golden", "recurse")})
 	require.NoError(err)
 	require.NotNil(tr)
 	assert.Len(tr.Nodes(), 1)
 	assert.Len(tr.Nodes()[0].Children(), 1)
-
-	tr, err = NewTreeFromS3(context.Background(), _cs3Testdata+"/golden/recurse", false)
-	require.NoError(err)
-	require.NotNil(tr)
-	assert.Len(tr.Nodes(), 1)
-	assert.Len(tr.Nodes()[0].Children(), 1)
-
-	_ = localstack.UseNot()
-	defer func() {
-		_ = localstack.Use()
-	}()
-	tr, err = NewTreeFromS3(context.Background(), "s3://4test.ed.techdev.spe.sony.com/sample/BladeRunnr2049/", false)
-	require.NoError(err)
-	require.NotNil(tr)
 }
