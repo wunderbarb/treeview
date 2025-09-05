@@ -17,6 +17,7 @@ import (
 
 func main() {
 	initEnv()
+	defer func() { _ = localstack.UseNot() }()
 	shared.ClearTerminal()
 	fmt.Println("Basic Tree With Default Formatting")
 	// Create nodes representing a basic tree structure
@@ -26,7 +27,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	// Render the tree to a string & print it
 	output, _ := tree.Render(context.Background())
 	fmt.Println(output)
@@ -35,7 +35,7 @@ func main() {
 
 	// Move focus to the second child and re-render
 	fmt.Println("Focus moved to second child")
-	tree.SetFocusedID(context.Background(), root.Children()[0].Children()[0].ID())
+	_, _ = tree.SetFocusedID(context.Background(), root.Children()[0].Children()[0].ID())
 	output, _ = tree.Render(context.Background())
 	fmt.Println(output)
 
@@ -43,7 +43,7 @@ func main() {
 
 	// Delete focus and re-render
 	fmt.Println("Focus deleted")
-	tree.SetFocusedID(context.Background(), "")
+	_, _ = tree.SetFocusedID(context.Background(), "")
 	output, _ = tree.Render(context.Background())
 	fmt.Println(output)
 
@@ -69,7 +69,7 @@ func initEnv() {
 	_ = localstack.Use()
 	defer func() { _ = localstack.UseNot() }()
 
-	goldenDirPath := filepath.Join("..", "..", "internal", "testfixtures")
+	goldenDirPath := filepath.Join("..", "..", "..", "internal", "testfixtures")
 	_ = localstack.CreateBucket(_myTestBucket, localstack.WithNoErrorIfExist())
 	_ = localstack.PutObject(_cGolden100K, filepath.Join(goldenDirPath, _c100K))
 	_ = localstack.PutObject(_cGolden1M, filepath.Join(goldenDirPath, _c1M))

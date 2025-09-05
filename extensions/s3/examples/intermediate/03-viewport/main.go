@@ -91,7 +91,7 @@ func initEnv() {
 	}
 	_ = localstack.Use()
 
-	goldenDirPath := filepath.Join("..", "..", "internal", "testfixtures")
+	goldenDirPath := filepath.Join("..", "..", "..", "internal", "testfixtures")
 	_ = localstack.CreateBucket(_myTestBucket, localstack.WithNoErrorIfExist())
 	_ = localstack.PutObject(_cGolden100K, filepath.Join(goldenDirPath, _c100K))
 	_ = localstack.PutObject(_cGolden1M, filepath.Join(goldenDirPath, _c1M))

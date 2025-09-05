@@ -28,4 +28,10 @@ func TestNewTreeFromS3(t *testing.T) {
 	require.NotNil(tr)
 	assert.Len(tr.Nodes(), 1)
 	assert.Len(tr.Nodes()[0].Children(), 1)
+
+	// errors
+	_, err = NewTreeFromS3(context.Background(), &InputTreeFromS3{Path: "bad"})
+	assert.Error(err)
+	_, err = NewTreeFromS3(context.Background(), &InputTreeFromS3{Path: _cs3Testdata, FollowSymlinks: true})
+	assert.ErrorIs(err, ErrNotYetSupported)
 }
