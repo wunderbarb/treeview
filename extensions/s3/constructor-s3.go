@@ -1,4 +1,5 @@
-// V0.1.0
+// V0.1.1
+// Sep 2025
 
 package s3
 
@@ -73,8 +74,8 @@ func scanDirS3(ctx context.Context, parent *treeview.Node[treeview.FileInfo], de
 	if err != nil {
 		return pathError(treeview.ErrDirectoryScan, parent.Data().Path, err)
 	}
-	children := make([]*treeview.Node[treeview.FileInfo], len(entries))
-	for i, entry := range entries {
+	children := make([]*treeview.Node[treeview.FileInfo], 0, len(entries)) // preallocation of the capacity only.
+	for _, entry := range entries {
 		// Check for cancellation between entries
 		if err := ctx.Err(); err != nil {
 			return err
@@ -101,7 +102,7 @@ func scanDirS3(ctx context.Context, parent *treeview.Node[treeview.FileInfo], de
 				return err
 			}
 		}
-		children[i] = childNode
+		children = append(children, childNode)
 	}
 	if len(children) > 0 {
 		parent.SetChildren(children)
