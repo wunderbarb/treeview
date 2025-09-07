@@ -34,7 +34,7 @@ func NewTree[T any](nodes []*Node[T], opts ...Option[T]) *Tree[T] {
 	// leveraged even when callers pre-assemble the slice.
 	if cfg.progressCb != nil {
 		for i, n := range nodes {
-			cfg.reportProgress(i+1, n)
+			cfg.ReportProgress(i+1, n)
 		}
 	}
 
@@ -169,7 +169,7 @@ func buildTreeFromNestedData[T any](ctx context.Context, items []T, provider Nes
 
 		// Increment node count & report progress
 		nodeCount++
-		cfg.reportProgress(nodeCount, n)
+		cfg.ReportProgress(nodeCount, n)
 
 		// Check depth limit
 		if cfg.HasDepthLimitBeenReached(depth) {
@@ -311,7 +311,7 @@ func buildTreeFromFlatData[T any](ctx context.Context, items []T, provider FlatD
 		parentLookup[id] = provider.ParentID(item)
 		idToNode[id] = n
 		nodeCount++
-		cfg.reportProgress(nodeCount, n)
+		cfg.ReportProgress(nodeCount, n)
 	}
 
 	// Pass 2: Establish parent/child relationships and validate tree has no cycles
@@ -439,7 +439,7 @@ func buildFileSystemTree(ctx context.Context, path string, followSymlinks bool, 
 
 	// Create the root node
 	rootNode := NewFileSystemNode(absPath, info)
-	cfg.reportProgress(1, rootNode)
+	cfg.ReportProgress(1, rootNode)
 
 	// Apply initial expansion state if configured
 	cfg.HandleExpansion(rootNode)
@@ -504,7 +504,7 @@ func scanDir(ctx context.Context, parent *Node[FileInfo], depth int, followSymli
 		// Increment and check traversal count
 		// This prevents runaway scans of huge directories
 		*count++
-		cfg.reportProgress(*count, childNode)
+		cfg.ReportProgress(*count, childNode)
 		if cfg.HasTraversalCapBeenReached(*count) {
 			return pathError(ErrTraversalLimit, childPath, nil)
 		}

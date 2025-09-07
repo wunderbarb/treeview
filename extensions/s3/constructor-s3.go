@@ -27,6 +27,14 @@ type InputTreeFromS3 struct {
 
 // NewTreeFromS3 creates a new tree structure based on files fetched from an S3 path, using configurable options.
 // Returns a pointer to a Tree structure or an error if an issue occurs during tree creation.
+//
+// Supported options:
+// Build options:
+//   - treeview.WithFilterFunc:   Filters items during tree building
+//   - treeview.WithMaxDepth:     Limits tree depth during construction
+//   - treeview.WithExpandFunc:   Sets initial expansion state for nodes
+//   - treeview.WithTraversalCap: Limits total nodes processed (returns a partial tree + error if exceeded)
+//   - treeview.WithProgressCallback: Invoked after each filesystem entry is processed (breadth-first per directory)
 func NewTreeFromS3(ctx context.Context, itf *InputTreeFromS3,
 	opts ...treeview.Option[treeview.FileInfo]) (*treeview.Tree[treeview.FileInfo], error) {
 	if itf.FollowSymlinks {
@@ -94,6 +102,7 @@ func scanDirS3(ctx context.Context, parent *treeview.Node[treeview.FileInfo], de
 		childNode := treeview.NewFileSystemNode(childPath, info)
 		cfg.HandleExpansion(childNode)
 		*count++
+		cfg.ReportProgress(*count, childNode)
 		if cfg.HasTraversalCapBeenReached(*count) {
 			return pathError(treeview.ErrTraversalLimit, childPath, nil)
 		}

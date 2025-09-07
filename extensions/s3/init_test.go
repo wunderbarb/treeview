@@ -1,4 +1,4 @@
-// v0.1.1
+// v0.1.2
 // Author: wunderbarb
 // Sep 2025
 
@@ -20,7 +20,7 @@ const (
 	_c100K        = "sample100K.golden"
 	_c1M          = "sample1M.golden"
 	_cGolden100K  = _cs3Testdata + "/golden/" + _c100K
-	_cGolden1M    = _cs3Testdata + "/golden/" + _c1M
+	_cGolden1M    = _cs3Testdata + "/golden/" + _c1M + "1"
 )
 
 func TestMain(m *testing.M) {

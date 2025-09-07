@@ -191,8 +191,8 @@ func (cfg *MasterConfig[T]) HasDepthLimitBeenReached(currentDepth int) bool {
 	return currentDepth >= cfg.maxDepth
 }
 
-// reportProgress invokes the configured progress callback (if any).
-func (cfg *MasterConfig[T]) reportProgress(processed int, node *Node[T]) {
+// ReportProgress invokes the configured progress callback (if any).
+func (cfg *MasterConfig[T]) ReportProgress(processed int, node *Node[T]) {
 	if cfg.progressCb == nil || node == nil {
 		return
 	}
