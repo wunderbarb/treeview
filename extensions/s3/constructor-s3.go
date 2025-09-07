@@ -35,7 +35,7 @@ func NewTreeFromS3(ctx context.Context, itf *InputTreeFromS3,
 	cfg := treeview.NewMasterConfig(opts, treeview.WithProvider[treeview.FileInfo](treeview.NewDefaultNodeProvider(
 		treeview.WithFileExtensionRules[treeview.FileInfo](),
 	)))
-	nodes, err := buildFileSystemTree4S3(ctx, itf, cfg)
+	nodes, err := buildFileSystemTreeForS3(ctx, itf, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", treeview.ErrFileSystem, err)
 	}
@@ -43,7 +43,7 @@ func NewTreeFromS3(ctx context.Context, itf *InputTreeFromS3,
 	return tree, nil
 }
 
-func buildFileSystemTree4S3(ctx context.Context, itf *InputTreeFromS3,
+func buildFileSystemTreeForS3(ctx context.Context, itf *InputTreeFromS3,
 	cfg *treeview.MasterConfig[treeview.FileInfo]) ([]*treeview.Node[treeview.FileInfo], error) {
 	if itf.Profile == "" {
 		itf.Profile = "default"
@@ -70,7 +70,7 @@ func scanDirS3(ctx context.Context, parent *treeview.Node[treeview.FileInfo], de
 	if cfg.HasDepthLimitBeenReached(depth) {
 		return nil
 	}
-	entries, err := s3.ReadDir1(ctx, parent.Data().Path)
+	entries, err := s3.ReadDir(ctx, parent.Data().Path)
 	if err != nil {
 		return pathError(treeview.ErrDirectoryScan, parent.Data().Path, err)
 	}

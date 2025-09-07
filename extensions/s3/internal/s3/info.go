@@ -1,6 +1,6 @@
-// v0.5.10
+// v0.6.0
 // Author: wunderbarb
-//  Aug 2024
+// Sep 2025
 
 package s3
 
@@ -29,12 +29,12 @@ func Base(path string) string {
 	return l[len(l)-1]
 }
 
-// IsDir1 informs whether the path is a key with objects.  The path may end with "/".
+// IsDir informs whether the path is a key with objects.  The path may end with "/".
 // The root of an accessible bucket is a directory.
 //
 //	If the bucket is not accessible, it returns false.
-func IsDir1(ctx context.Context, path string, opts ...Option) bool {
-	b, p := parse1(path)
+func IsDir(ctx context.Context, path string, opts ...Option) bool {
+	b, p := parsePtr(path)
 	cl, err := newClientForBucket(*b, opts...)
 	if err != nil {
 		return false
@@ -103,10 +103,10 @@ func (id InfoDir) Name() string {
 	return id.name
 }
 
-// ReadDir1 lists all the keys in the path. It returns a slice of `fs.DirEntry`. It hides the pagination, i.e.,
+// ReadDir lists all the keys in the path. It returns a slice of `fs.DirEntry`. It hides the pagination, i.e.,
 // it may return more than 1,000 objects.
 // This version is really compliant with fs.DirEntry.  In ReadDir fs.DirEntry.Name() does not return the base.
-func ReadDir1(ctx context.Context, path string, opts ...Option) ([]fs.DirEntry, error) {
+func ReadDir(ctx context.Context, path string, opts ...Option) ([]fs.DirEntry, error) {
 	de, err := list(ctx, path, opts...)
 	if err != nil {
 		return nil, err
@@ -229,7 +229,7 @@ func getList(ctx context.Context, path string, opts ...Option) ([]types.Object, 
 // subdirectories.  It returns a slice of `types.Object`, and a slice of common prefixes.
 func getListPossiblyRecurse(ctx context.Context, path string, recurse bool, opts ...Option) ([]types.Object,
 	[]types.CommonPrefix, error) {
-	b, p := parse1(path)
+	b, p := parsePtr(path)
 	c, err := newClientForBucket(*b, opts...)
 	if err != nil {
 		return nil, nil, err

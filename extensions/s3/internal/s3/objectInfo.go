@@ -39,7 +39,7 @@ func Info(ctx context.Context, path string, opts ...Option) (*ObjectInfo, error)
 	if p == "" {
 		return oi, nil
 	}
-	oi.isDir = IsDir1(ctx, path, opts...)
+	oi.isDir = IsDir(ctx, path, opts...)
 	if !oi.isDir {
 		hoOut, err := getHeadObject(ctx, path, opts...)
 		if err != nil {

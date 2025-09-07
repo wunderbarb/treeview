@@ -1,4 +1,4 @@
-// v0.2.5
+// v0.2.6
 // Author: wunderbarb
 // Sep 2025
 
@@ -33,7 +33,7 @@ func UnParse(bucket string, key string) string {
 	return _cS3URI + bucket + "/" + key
 }
 
-func parse1(path string) (*string, *string) {
+func parsePtr(path string) (*string, *string) {
 	a, b := Parse(path)
 	return aws.String(a), aws.String(b)
 }

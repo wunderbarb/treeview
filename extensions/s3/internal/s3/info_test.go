@@ -15,7 +15,7 @@ import (
 func Test_ReadDir1(t *testing.T) {
 	require, assert := test.Describe(t)
 
-	a, err := ReadDir1(context.Background(), _cs3Testdata+"/golden")
+	a, err := ReadDir(context.Background(), _cs3Testdata+"/golden")
 	require.NoError(err)
 	require.LessOrEqual(2, len(a))
 	var as []string
@@ -24,7 +24,7 @@ func Test_ReadDir1(t *testing.T) {
 	}
 	assert.Contains(as, "sample100K.golden")
 	assert.Contains(as, "sample1M.golden")
-	a, err = ReadDir1(context.Background(), _cs3Testdata+"/golden/")
+	a, err = ReadDir(context.Background(), _cs3Testdata+"/golden/")
 	require.NoError(err)
 	require.LessOrEqual(2, len(a))
 	var as4 []string
@@ -34,7 +34,7 @@ func Test_ReadDir1(t *testing.T) {
 	assert.Contains(as4, "sample100K.golden")
 	assert.Contains(as4, "sample1M.golden")
 
-	a, err = ReadDir1(context.Background(), _cs3Testdata)
+	a, err = ReadDir(context.Background(), _cs3Testdata)
 	require.NoError(err)
 	require.LessOrEqual(1, len(a))
 	var as2 []string
@@ -43,12 +43,12 @@ func Test_ReadDir1(t *testing.T) {
 	}
 	assert.Contains(as2, "golden")
 
-	_, err = ReadDir1(context.Background(), "badBucket/golden")
+	_, err = ReadDir(context.Background(), "badBucket/golden")
 	assert.Error(err)
 
 	// localstack.UseNot()
 	// defer localstack.Use()
-	// a, err = ReadDir1(context.Background(), "s3://4test.ed.techdev.spe.sony.com/sample/BladeRunnr2049")
+	// a, err = ReadDir(context.Background(), "s3://4test.ed.techdev.spe.sony.com/sample/BladeRunnr2049")
 	// require.NoError(err)
 	// assert.Len(a, 10)
 	// var as3 []string
@@ -78,7 +78,7 @@ func Test_IsDir(t *testing.T) {
 		{"s3://bad", false},
 	}
 	for i, tt := range tests {
-		assert.Equal(tt.expSuccess, IsDir1(context.Background(), tt.path), "sample %d", i+1)
+		assert.Equal(tt.expSuccess, IsDir(context.Background(), tt.path), "sample %d", i+1)
 	}
 }
 

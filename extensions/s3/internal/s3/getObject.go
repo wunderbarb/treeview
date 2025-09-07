@@ -42,7 +42,7 @@ func getObject(ctx context.Context, path string, opts ...Option) (*awsS3.GetObje
 // If WithRetry, the default triggered error is "slow down".  The option may add other ones.
 func getObject1(ctx context.Context, c getObjecter, path string, opts ...Option) (*awsS3.GetObjectOutput, error) {
 	o := collectOptions(opts...)
-	b, p := parse1(path)
+	b, p := parsePtr(path)
 
 	goi := &awsS3.GetObjectInput{
 		Bucket: b,
