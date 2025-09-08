@@ -1,21 +1,20 @@
-// v0.1.0
+// v0.1.1
 // Author: wunderbarb
-//  Mar 2023
+// Sep 2025
 
 package localstack
 
 import (
 	"testing"
-
-	"github.com/wunderbarb/test"
 )
 
 func TestWithEnvironmentVariable(t *testing.T) {
-	require, assert := test.Describe(t)
-
 	o := collectOptions(WithEnvironmentVariable("Test", "true"))
-	require.NotNil(o)
+	if o == nil {
+		t.Fatal("Options should not be nil")
+	}
 	s := o.getEnv()
-	assert.NotEmpty(s)
-	assert.Equal(`{"Variables":{"Test":"true","USE_LOCALSTACK":"true"}}`, s)
+	if s != `{"Variables":{"Test":"true","USE_LOCALSTACK":"true"}}` {
+		t.Error("Options should contain the environment variable set")
+	}
 }

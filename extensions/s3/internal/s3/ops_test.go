@@ -6,10 +6,9 @@ package s3
 
 import (
 	"context"
+	"math/rand/v2"
 	"testing"
 	"time"
-
-	"github.com/wunderbarb/test"
 )
 
 func Test_Join(t *testing.T) {
@@ -48,7 +47,7 @@ func TestHasAccess(t *testing.T) {
 	if HasAccess(context.Background(), _cS3) == false {
 		t.Fatal("expected true")
 	}
-	if HasAccess(context.Background(), Join(_cS3, test.RandomID()),
+	if HasAccess(context.Background(), Join(_cS3, randomID()),
 		WithRetry(3, 500*time.Millisecond)) == false {
 		t.Fatal("expected true")
 	}
@@ -58,4 +57,19 @@ func TestHasAccess(t *testing.T) {
 	if HasAccess(context.Background(), "s3://bad/bad", WithRetry(3, 500*time.Millisecond)) == true {
 		t.Fatal("expected false")
 	}
+}
+
+// randomID returns a random 16-character, alphanumeric, ID.
+func randomID() string {
+	const sizeID = 16
+	size := sizeID
+	var buffer []byte
+	choice := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890")
+	choiceSize := len(choice)
+	for i := 0; i < size; i++ {
+		// generates the characters
+		s := rand.IntN(choiceSize)
+		buffer = append(buffer, choice[s])
+	}
+	return string(buffer)
 }

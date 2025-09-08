@@ -1,15 +1,14 @@
-// v0.1.11
+// v0.1.12
 // Author: wunderbarb
 // Sep 2025
 
 package localstack
 
 import (
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/wunderbarb/test"
 )
 
 func TestMain(m *testing.M) {
@@ -19,58 +18,71 @@ func TestMain(m *testing.M) {
 }
 
 func TestIsRunning(t *testing.T) {
-	require, _ := test.Describe(t)
-
-	require.True(IsRunning())
+	if IsRunning() == false {
+		t.Fatal("expected true")
+	}
 }
 
 func TestCreateBucket(t *testing.T) {
-	require, assert := test.Describe(t)
-
-	bkt := "tst" + test.RandomAlphaString(16, test.Small)
-	require.NoError(CreateBucket(bkt))
-	assert.Error(CreateBucket(bkt))
-	assert.NoError(CreateBucket(bkt, WithNoErrorIfExist()))
-	assert.NoError(DeleteBucket(bkt))
-	assert.Error(DeleteBucket("s3://bad"))
-	assert.Error(CreateBucket("tst" + test.RandomAlphaString(64, test.Small)))
+	bkt := "tst" + randomID()
+	if err := CreateBucket(bkt); err != nil {
+		t.Fatal(err)
+	}
+	if err := CreateBucket(bkt); err == nil {
+		t.Error(err)
+	}
+	if err := CreateBucket(bkt, WithNoErrorIfExist()); err != nil {
+		t.Fatal(err)
+	}
+	if err := DeleteBucket(bkt); err != nil {
+		t.Error(err)
+	}
+	if err := DeleteBucket("s3://bad"); err == nil {
+		t.Error("should generate an error")
+	}
+	if err := CreateBucket("tst" + randomID()); err == nil {
+		t.Error("should generate an error")
+	}
 }
 
 func TestCreateBucketAt(t *testing.T) {
-	require, assert := test.Describe(t)
-
-	bkt := "tst" + test.RandomAlphaString(16, test.Small)
+	bkt := "tst" + randomID()
 	const cRegion = "us-west-2"
-	require.NoError(CreateBucketAt(bkt, cRegion))
-	assert.NoError(DeleteBucketAt(bkt, cRegion))
+	if err := CreateBucketAt(bkt, cRegion); err != nil {
+		t.Fatal(err)
+	}
+	if err := DeleteBucketAt(bkt, cRegion); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestPutObject(t *testing.T) {
-	require, assert := test.Describe(t)
-
-	bkt := "tst" + test.RandomAlphaString(16, test.Small)
+	bkt := "tst" + randomID()
 	isPanic(CreateBucket(bkt))
 	defer func() { _ = DeleteBucket(bkt) }()
 
 	hDir, err := os.UserHomeDir()
 	isPanic(err)
-	require.NoError(PutObject("s3://"+bkt+"/test", filepath.Join(hDir, "Dev", "golden", "sample100K.golden")))
-	assert.NoError(PutObject("s3://"+bkt+"/test", filepath.Join(hDir, "Dev", "golden", "sample100K.golden")))
+	if err = PutObject("s3://"+bkt+"/test", filepath.Join(hDir, "Dev", "golden", "sample100K.golden")); err != nil {
+		t.Fatal(err)
+	}
+	if err = PutObject("s3://"+bkt+"/test", filepath.Join(hDir, "Dev", "golden", "sample100K.golden")); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestDeleteBucket(t *testing.T) {
-	require, _ := test.Describe(t)
-
-	bkt := "tst" + test.RandomAlphaString(16, test.Small)
+	bkt := "tst" + randomID()
 	isPanic(CreateBucket(bkt))
 	hDir, _ := os.UserHomeDir()
-	_ = PutObject("s3://"+bkt+"/test", filepath.Join(hDir, "Dev", "golden", "sample100K.golden"))
+	isPanic(PutObject("s3://"+bkt+"/test", filepath.Join(hDir, "Dev", "golden", "sample100K.golden")))
 
-	require.NoError(DeleteBucket(bkt))
+	if err := DeleteBucket(bkt); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestSetEndPointURLForLambda(t *testing.T) {
-	_, assert := test.Describe(t)
 	const key = "LOCALSTACK_HOSTNAME"
 
 	adr := "127.27.0.2"
@@ -81,12 +93,31 @@ func TestSetEndPointURLForLambda(t *testing.T) {
 	}()
 
 	SetEndPointURLForLambda()
-	assert.Equal("--endpoint-url=http://"+adr+":4566", _endpointURL)
-	assert.Equal("http://"+adr+":4566", GetEndPointURL())
+	if "--endpoint-url=http://"+adr+":4566" != _endpointURL {
+		t.Error("should be equal")
+	}
+	if GetEndPointURL() != "http://"+adr+":4566" {
+		t.Error("should be equal")
+	}
 }
 
 func isPanic(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+// randomID returns a random 16-character, alphanumeric, ID.
+func randomID() string {
+	const sizeID = 16
+	size := sizeID
+	var buffer []byte
+	choice := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890")
+	choiceSize := len(choice)
+	for i := 0; i < size; i++ {
+		// generates the characters
+		s := rand.IntN(choiceSize)
+		buffer = append(buffer, choice[s])
+	}
+	return string(buffer)
 }

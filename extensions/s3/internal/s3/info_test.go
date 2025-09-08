@@ -9,8 +9,6 @@ import (
 	"io/fs"
 	"slices"
 	"testing"
-
-	"github.com/wunderbarb/test"
 )
 
 func Test_ReadDir1(t *testing.T) {
@@ -55,8 +53,6 @@ func Test_ReadDir1(t *testing.T) {
 }
 
 func Test_DirEntry_is_interface(t *testing.T) {
-	_, _ = test.Describe(t)
-
 	var _ fs.DirEntry = (*DirEntry)(nil)
 }
 

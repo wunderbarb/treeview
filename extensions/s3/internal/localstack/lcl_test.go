@@ -1,22 +1,29 @@
-// v0.1.0
+// v0.1.1
 // Author: wunderbarb
-//  Jan 2023
+// Sep 2025
 
 package localstack
 
 import (
 	"testing"
-
-	"github.com/wunderbarb/test"
 )
 
 func TestUseNot(t *testing.T) {
-	require, assert := test.Describe(t)
 	defer func() { _ = Use() }()
 
-	require.True(InUse())
-	require.NoError(UseNot())
-	assert.False(InUse())
-	require.NoError(Use())
-	assert.True(InUse())
+	if InUse() == false {
+		t.Fatal("InUse() should return true")
+	}
+	if err := UseNot(); err != nil {
+		t.Fatalf("UseNot() should not return error, but got %v", err)
+	}
+	if InUse() == true {
+		t.Error("UseNot() should return false")
+	}
+	if err := Use(); err != nil {
+		t.Fatalf("Use should not return error, but got %v", err)
+	}
+	if InUse() == false {
+		t.Fatal("InUse() should return true")
+	}
 }

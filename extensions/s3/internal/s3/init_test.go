@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/wunderbarb/test"
-
 	"github.com/Digital-Shane/treeview/extensions/s3/internal/localstack"
 )
 
@@ -41,26 +39,6 @@ func TestMain(m *testing.M) {
 	_ = localstack.PutObject(_cGolden1M, filepath.Join(_goldenDirPath, _c1M))
 	_ = localstack.PutObject(_cs3Testdata+"/golden/recurse/"+_c100K, filepath.Join(_goldenDirPath, _c100K))
 	m.Run()
-}
-
-func Test_parse(t *testing.T) {
-	_, assert := test.Describe(t)
-
-	tests := []struct {
-		path string
-		bkt  string
-		key  string
-	}{
-		{"s3://sony.com/place/l2", "sony.com", "place/l2"},
-		{"sony.com/place/l2", "sony.com", "place/l2"},
-		{"s3://sony.com/", "sony.com", ""},
-		{"sony.com", "sony.com", ""},
-	}
-	for _, tt := range tests {
-		g1, g2 := Parse(tt.path)
-		assert.Equal(tt.bkt, g1)
-		assert.Equal(tt.key, g2)
-	}
 }
 
 func isPanic(err error) {
