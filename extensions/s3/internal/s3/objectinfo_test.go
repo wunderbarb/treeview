@@ -1,33 +1,59 @@
-// v0.1.0
+// v0.1.1
 // Author: wunderbarb
-//  Aug 2025
+// Sep 2025
 
 package s3
 
 import (
 	"context"
+	"io/fs"
 	"testing"
-
-	"github.com/wunderbarb/test"
 )
 
 func TestInfo1(t *testing.T) {
-	require, assert := test.Describe(t)
-
 	oi, err := Info(context.Background(), _cs3Testdata)
-	require.NoError(err)
-	require.NotNil(oi)
-	assert.True(oi.IsDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if oi == nil {
+		t.Fatal("Info() returned nil")
+	}
+	if oi.IsDir() == false {
+		t.Error("IsDir() returned false")
+	}
+	if oi.Mode() != fs.ModeDir|defaultMode {
+		t.Errorf("expected %v got %v", fs.ModeDir|defaultMode, oi.Mode())
+	}
 
 	oi, err = Info(context.Background(), _cS3)
-	require.NoError(err)
-	require.NotNil(oi)
-	assert.True(oi.IsDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if oi == nil {
+		t.Fatal("Info() returned nil")
+	}
+	if oi.IsDir() == false {
+		t.Error("IsDir() returned false")
+	}
 
 	oi, err = Info(context.Background(), _cGolden100K)
-	require.NoError(err)
-	require.NotNil(oi)
-	assert.False(oi.IsDir())
-	assert.Equal("sample100K.golden", oi.Name())
-	assert.Equal(int64(100*K), oi.Size())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if oi == nil {
+		t.Fatal("Info() returned nil")
+	}
+	if oi.IsDir() == true {
+		t.Error("IsDir() returned true")
+	}
+	if oi.Name() != _c100K {
+		t.Error("expected " + _c100K + ", got " + oi.Name())
+	}
+	if int64(100*K) != oi.Size() {
+		t.Errorf("expected %d got %d", int64(100*K), oi.Size())
+	}
+
+	if oi.Mode() != fs.ModeIrregular {
+		t.Errorf("expected %v got %v", fs.ModeIrregular, oi.Mode())
+	}
 }

@@ -18,9 +18,10 @@ const (
 	_cS3          = _cS3URI + _myTestBucket
 	_cs3Testdata  = _cS3 + "/testdata"
 	_c100K        = "sample100K.golden"
-	_c1M          = "sample1M.golden"
+	_c1M          = "sample1M.golden1"
+	_c1Mg         = "sample1M.golden"
 	_cGolden100K  = _cs3Testdata + "/golden/" + _c100K
-	_cGolden1M    = _cs3Testdata + "/golden/" + _c1M
+	_cGolden1M    = _cs3Testdata + "/golden/" + _c1Mg
 	K             = 1024
 )
 

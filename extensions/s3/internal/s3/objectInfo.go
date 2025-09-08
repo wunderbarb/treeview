@@ -1,6 +1,6 @@
-// v0.2.1
+// v0.2.2
 // Author: wunderbarb
-//  Aug 2025
+// Sep 2025
 
 package s3
 
@@ -9,6 +9,8 @@ import (
 	"io/fs"
 	"time"
 )
+
+const defaultMode = 0o755
 
 // ObjectInfo holds the information related to an S3 object.  It implements the interface io/fs/FileInfo.
 type ObjectInfo struct {
@@ -63,7 +65,7 @@ func (oi *ObjectInfo) Name() string {
 
 // Mode is mandatory for the fs.FileInfo interface.
 func (oi *ObjectInfo) Mode() fs.FileMode {
-	const defaultMode = 0o755
+
 	if oi.isDir {
 		return fs.ModeDir | defaultMode
 	}

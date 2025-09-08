@@ -1,61 +1,57 @@
-// v0.1.16
+// v0.1.17
 // Author: wunderbarb
-//  Aug 2024
+// Sep 2025
 
 package s3
 
 import (
 	"context"
 	"io/fs"
+	"slices"
 	"testing"
 
 	"github.com/wunderbarb/test"
 )
 
 func Test_ReadDir1(t *testing.T) {
-	require, assert := test.Describe(t)
-
-	a, err := ReadDir(context.Background(), _cs3Testdata+"/golden")
-	require.NoError(err)
-	require.LessOrEqual(2, len(a))
-	var as []string
-	for _, dir := range a {
-		as = append(as, dir.Name())
+	tests := []struct {
+		path       string
+		expSuccess bool
+		minLength  int
+		contain    []string
+	}{
+		{_cs3Testdata + "/golden", true, 2, []string{_c100K, _c1M}},
+		{_cs3Testdata, true, 1, []string{"golden"}},
+		{"badBucket/golden", false, 0, nil},
 	}
-	assert.Contains(as, "sample100K.golden")
-	assert.Contains(as, "sample1M.golden")
-	a, err = ReadDir(context.Background(), _cs3Testdata+"/golden/")
-	require.NoError(err)
-	require.LessOrEqual(2, len(a))
-	var as4 []string
-	for _, dir := range a {
-		as4 = append(as4, dir.Name())
+	for _, tt := range tests {
+		a, err := ReadDir(context.Background(), tt.path)
+		if tt.expSuccess != (err == nil) {
+			t.Fatal(err)
+		}
+		if err == nil {
+			if len(a) < tt.minLength {
+				t.Fatalf("expected minimal length %d, got %d", tt.minLength, len(a))
+			}
+			var as []string
+			for _, dir := range a {
+				as = append(as, dir.Name())
+			}
+			for _, name := range tt.contain {
+				if !slices.Contains(as, name) {
+					t.Errorf("expected %s to contain %s", as, name)
+				}
+			}
+		}
 	}
-	assert.Contains(as4, "sample100K.golden")
-	assert.Contains(as4, "sample1M.golden")
-
-	a, err = ReadDir(context.Background(), _cs3Testdata)
-	require.NoError(err)
-	require.LessOrEqual(1, len(a))
-	var as2 []string
-	for _, dir := range a {
-		as2 = append(as2, dir.Name())
+	a, err := ReadDir(context.Background(), Join(_cs3Testdata, "golden", "recurse"))
+	isPanic(err)
+	if a[0].IsDir() != false {
+		t.Error("expected dir to be false")
 	}
-	assert.Contains(as2, "golden")
-
-	_, err = ReadDir(context.Background(), "badBucket/golden")
-	assert.Error(err)
-
-	// localstack.UseNot()
-	// defer localstack.Use()
-	// a, err = ReadDir(context.Background(), "s3://4test.ed.techdev.spe.sony.com/sample/BladeRunnr2049")
-	// require.NoError(err)
-	// assert.Len(a, 10)
-	// var as3 []string
-	// for _, dir := range a {
-	// 	as3 = append(as3, dir.Name())
-	// }
-	// assert.Contains(as3, "BladeRunnr2049_FTR-2D-DVis_S_EN-ES_ES_71-Atmos_4K_SPE_20170904_DGB_SMPTE_OV")
+	if a[0].Name() != _c100K {
+		t.Errorf("expected %s to be %s", a[0].Name(), _c100K)
+	}
 }
 
 func Test_DirEntry_is_interface(t *testing.T) {
@@ -65,8 +61,6 @@ func Test_DirEntry_is_interface(t *testing.T) {
 }
 
 func Test_IsDir(t *testing.T) {
-	_, assert := test.Describe(t)
-
 	tests := []struct {
 		path       string
 		expSuccess bool
@@ -78,13 +72,13 @@ func Test_IsDir(t *testing.T) {
 		{"s3://bad", false},
 	}
 	for i, tt := range tests {
-		assert.Equal(tt.expSuccess, IsDir(context.Background(), tt.path), "sample %d", i+1)
+		if tt.expSuccess != IsDir(context.Background(), tt.path) {
+			t.Errorf("%d: expected %v, got %v", i, tt.expSuccess, IsDir(context.Background(), tt.path))
+		}
 	}
 }
 
 func Test_Base(t *testing.T) {
-	_, assert := test.Describe(t)
-
 	tests := []struct {
 		path   string
 		result string
@@ -95,6 +89,8 @@ func Test_Base(t *testing.T) {
 		{"", "."},
 	}
 	for _, tt := range tests {
-		assert.Equal(tt.result, Base(tt.path))
+		if tt.result != Base(tt.path) {
+			t.Errorf("%s: expected %s, got %s", tt.path, tt.result, tt.result)
+		}
 	}
 }

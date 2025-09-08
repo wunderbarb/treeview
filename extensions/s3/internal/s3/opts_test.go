@@ -1,21 +1,21 @@
-// v0.4.2
+// v0.4.3
 // Author: wunderbarb
-//  Apr 2023
+// Sep 2025
 
 package s3
 
 import (
 	"testing"
 	"time"
-
-	"github.com/wunderbarb/test"
 )
 
 func TestIsWithRetry(t *testing.T) {
-	_, assert := test.Describe(t)
-
 	var opts []Option
-	assert.False(IsWithRetry(opts...))
+	if IsWithRetry(opts...) == true {
+		t.Error("IsWithRetry should return false when opts is nil")
+	}
 	opts = append(opts, WithRetry(10, time.Second))
-	assert.True(IsWithRetry(opts...))
+	if IsWithRetry(opts...) == false {
+		t.Error("IsWithRetry should return true")
+	}
 }
