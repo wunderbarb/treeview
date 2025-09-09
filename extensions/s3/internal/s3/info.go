@@ -123,6 +123,7 @@ func ReadDir(ctx context.Context, path string, opts ...Option) ([]fs.DirEntry, e
 // DirEntry is an entry read from a directory.  It implements the fs.DirEntry interface.
 type DirEntry struct {
 	InfoDir
+	size int64
 }
 
 // Info returns the FileInfo for the file or subdirectory described by the entry.
@@ -152,11 +153,12 @@ func (de *DirEntry) ModTime() time.Time {
 
 // Size returns the size of the entry.
 func (de *DirEntry) Size() int64 {
-	s, err := Size(context.Background(), UnParse(de.bucket, de.name))
-	if err != nil {
-		return 0
-	}
-	return s
+	// s, err := Size(context.Background(), UnParse(de.bucket, de.name))
+	// if err != nil {
+	// 	return 0
+	// }
+	// return s
+	return de.size
 }
 
 // Sys returns.  It is needed for fs.DirEntry interface compliance.
@@ -196,6 +198,7 @@ func list(ctx context.Context, path string, opts ...Option) ([]DirEntry, error) 
 					name:         *o.Key,
 					dir:          false,
 				},
+				size: 0,
 			}
 			id.bucket = b
 			list = append(list, id)
@@ -212,6 +215,7 @@ func list(ctx context.Context, path string, opts ...Option) ([]DirEntry, error) 
 					name:         trn,
 					dir:          true,
 				},
+				size: *o.Size,
 			}
 			id.bucket = b
 			list = append(list, id)

@@ -6,7 +6,6 @@ import (
 
 	"github.com/Digital-Shane/treeview"
 	"github.com/Digital-Shane/treeview/examples/shared"
-	"github.com/Digital-Shane/treeview/extensions/s3"
 )
 
 // //////////////////////////////////////////////////////////////////
@@ -18,11 +17,9 @@ func main() {
 	fmt.Println("Basic Tree With Default Formatting")
 	// Create nodes representing a basic tree structure
 	root := shared.CreateBasicTreeNodes()
+
 	// Create tree with default options
-	tree, err := s3.NewTreeFromS3(context.Background(), nil, treeview.WithExpandAll[treeview.FileInfo]())
-	if err != nil {
-		panic(err)
-	}
+	tree := treeview.NewTree([]*treeview.Node[string]{root}, treeview.WithExpandAll[string]())
 	// Render the tree to a string & print it
 	output, _ := tree.Render(context.Background())
 	fmt.Println(output)
