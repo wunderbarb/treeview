@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/Digital-Shane/treeview"
 	"github.com/Digital-Shane/treeview/extensions/s3/internal/s3"
@@ -52,6 +53,25 @@ func NewTreeFromS3(ctx context.Context, itf *InputTreeFromS3,
 	return tree, nil
 }
 
+/// NewTreeUniversal creates a new tree structure based on files fetched from either a local directory or an S3 path,
+// using configurable options.
+// Returns a pointer to a Tree structure or an error if an issue occurs during tree creation.
+//
+// Supported options:
+// Build options:
+//   - treeview.WithFilterFunc:   Filters items during tree building
+//   - treeview.WithMaxDepth:     Limits tree depth during construction
+//   - treeview.WithExpandFunc:   Sets initial expansion state for nodes
+//   - treeview.WithTraversalCap: Limits total nodes processed (returns a partial tree + error if exceeded)
+//   - treeview.WithProgressCallback: Invoked after each filesystem entry is processed (breadth-first per directory)
+func NewTreeUniversal(ctx context.Context, itf *InputTreeFromS3,
+	opts ...treeview.Option[treeview.FileInfo]) (*treeview.Tree[treeview.FileInfo], error) {
+	if isS3(itf.Path) {
+		return NewTreeFromS3(ctx, itf, opts...)
+	}
+	return treeview.NewTreeFromFileSystem(ctx, itf.Path, itf.FollowSymlinks, opts...)
+}
+
 func buildFileSystemTreeForS3(ctx context.Context, itf *InputTreeFromS3,
 	cfg *treeview.MasterConfig[treeview.FileInfo]) ([]*treeview.Node[treeview.FileInfo], error) {
 	if itf.Profile == "" {
@@ -70,6 +90,13 @@ func buildFileSystemTreeForS3(ctx context.Context, itf *InputTreeFromS3,
 		}
 	}
 	return []*treeview.Node[treeview.FileInfo]{rootNode}, nil
+}
+
+
+// isS3 checks whether `path` is in S3.
+func isS3(path string) bool {
+	const cS3Prefix = "s3://"
+	return strings.HasPrefix(path, cS3Prefix)
 }
 
 // scanDirS3 scans a bucket or key and its subdirectories, creating Node[treeview.FileInfo] for each entry.
