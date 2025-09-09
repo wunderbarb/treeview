@@ -2,15 +2,12 @@ module github.com/Digital-Shane/treeview/extensions/s3
 
 go 1.25.0
 
-replace github.com/Digital-Shane/treeview => ../..
-
 require (
 	github.com/Digital-Shane/treeview v1.8.1
 	github.com/aws/aws-sdk-go-v2 v1.38.3
 	github.com/aws/aws-sdk-go-v2/config v1.31.6
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.87.1
 	github.com/aws/smithy-go v1.23.0
-	github.com/charmbracelet/bubbletea v1.3.6
 	github.com/failsafe-go/failsafe-go v0.6.9
 	github.com/google/go-cmp v0.7.0
 	github.com/pkg/errors v0.9.1
@@ -37,6 +34,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.2 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/bubbles v0.21.0 // indirect
+	github.com/charmbracelet/bubbletea v1.3.6 // indirect
 	github.com/charmbracelet/colorprofile v0.3.1 // indirect
 	github.com/charmbracelet/lipgloss v1.1.0 // indirect
 	github.com/charmbracelet/x/ansi v0.9.3 // indirect

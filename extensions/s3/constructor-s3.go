@@ -1,6 +1,7 @@
 // V0.1.1
 // Sep 2025
 
+// Package s3 provides a treeview.Tree constructor dedicated to AWS S3.
 package s3
 
 import (
@@ -19,7 +20,7 @@ var ErrNotYetSupported = errors.New("not yet supported")
 type InputTreeFromS3 struct {
 	// Path is the S3 URI in the format s3://<bucket>/<Key> or s3://<bucket>/
 	Path string
-	// Profile is the AWS profile to use.  If not defined, it uses default.
+	// Profile is the AWS profile to use.  If not defined, it uses the default profile.
 	Profile string
 	// determines whether symbolic links should be followed during traversal.
 	FollowSymlinks bool
