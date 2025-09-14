@@ -1,7 +1,3 @@
-// v0.2.6
-// Author: wunderbarb
-// Sep 2025
-
 package s3
 
 import (
@@ -26,11 +22,6 @@ func Parse(path string) (string, string) {
 		return p[0], ""
 	}
 	return p[0], p[1]
-}
-
-// UnParse returns the s3URI of the object defined by `bucket` and `key`.
-func UnParse(bucket string, key string) string {
-	return _cS3URI + bucket + "/" + key
 }
 
 func parsePtr(path string) (*string, *string) {

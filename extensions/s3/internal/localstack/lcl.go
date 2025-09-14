@@ -1,7 +1,3 @@
-// v0.2.3
-// Author: wunderbarb
-//  Sep 2025
-
 // Package localstack manages the localstack emulator and provides some helper functions.
 // It is automatically used by the github.com/TechDev-SPE/go-aws library if the environment variable `USE_LOCALSTACK`
 // is set.  The preferred way to set this variable is to use `localstack.Use()` and `localstack.UseNot()`.

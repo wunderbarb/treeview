@@ -1,7 +1,3 @@
-// v0.2.4
-// Author: wunderbarb
-// Sep 2025
-
 package s3
 
 import (
@@ -35,6 +31,7 @@ func TestMain(m *testing.M) {
 
 	_goldenDirPath = filepath.Join("internal", "testfixtures")
 	_ = localstack.CreateBucket(_myTestBucket, localstack.WithNoErrorIfExist())
+	// sample100K.golden (resp. sample1M.golden) is a 100K (resp. 1M) random byte file used for test purpose.
 	_ = localstack.PutObject(_cGolden100K, filepath.Join(_goldenDirPath, _c100K))
 	_ = localstack.PutObject(_cGolden1M, filepath.Join(_goldenDirPath, _c1M))
 	_ = localstack.PutObject(_cs3Testdata+"/golden/recurse/"+_c100K, filepath.Join(_goldenDirPath, _c100K))

@@ -1,7 +1,5 @@
-// v0.4.4
-// Author: wunderbarb
-//  Feb 2025
-
+// Package config prepares the AWS configuration that will be used by the AWS services.  It handles the localstack
+// configuration. It provides some means to generate errors useful in unitary tests
 package config
 
 import (
@@ -28,25 +26,10 @@ const (
 	_cFaultyRegion = "faulty-region-1"
 )
 
-// // CfgLocalstack is the configuration used for `localstack`.
-// // For testing purpose exclusively.
-// var CfgLocalstack = []config.LoadOptionsFunc{
-// 	config.WithEndpointResolver(aws.EndpointResolverFunc(
-// 		func(service, region string) (aws.Endpoint, error) {
-// 			e, ok := os.LookupEnv("LOCALSTACK_HOSTNAME")
-// 			if !ok {
-// 				e = "localhost"
-// 			}
-// 			endpointURL := fmt.Sprintf("http://%s:4566", e)
-// 			return aws.Endpoint{URL: endpointURL, SigningRegion: "us-west-2", HostnameImmutable: true}, nil
-// 		})),
-// 	config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("dummy", "dummy", "dummy")),
-// }
-
-// _cached is the cached configuration to avoid throttling when using EC2 IMDSv2.
+// _cached is the cached configuration to avoid throttling when calling too often the configuration.
 var _cached cache
 
-// NewConfig returns a configuration with the given options.  If there are no option, it is the default configuration.
+// NewConfig returns a configuration with the given options.  If there are no options, it is the default configuration.
 // The supported options are `WithLocalStack`.
 func NewConfig(opts ...config.LoadOptionsFunc) (cfg aws.Config, err error) {
 	var opa []func(loadOptions *config.LoadOptions) error

@@ -1,7 +1,4 @@
-// v0.3.1
-// Author: wunderbarb
-// Sep 2025
-
+// Package s3 is a wrapper around aws-sdk-go-v2/s3.
 package s3
 
 import (

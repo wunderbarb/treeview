@@ -1,7 +1,3 @@
-// v0.9.2
-// Author: wunderbarb
-// Sep 2025
-
 package s3
 
 import (

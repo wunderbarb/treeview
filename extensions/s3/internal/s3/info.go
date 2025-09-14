@@ -1,7 +1,3 @@
-// v0.6.0
-// Author: wunderbarb
-// Sep 2025
-
 package s3
 
 import (
@@ -141,7 +137,7 @@ func (de *DirEntry) IsDir() bool {
 	return de.InfoDir.IsDir()
 }
 
-// Mode systematically returns fs.ModeIrregular.  It is needed for fs.DirEntry interface compliance.
+// Mode systematically returns fs.ModeIrregular.  It is necessary for fs.DirEntry interface compliance.
 func (de *DirEntry) Mode() fs.FileMode {
 	return fs.ModeIrregular
 }

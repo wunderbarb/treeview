@@ -1,7 +1,3 @@
-// v0.7.0
-// Author: Wunderbarb
-// Jan 2025
-
 // Package exec provides a set of system-related functions such a Run that runs an application.
 package exec
 

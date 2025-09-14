@@ -1,6 +1,3 @@
-// V0.1.1
-// Sep 2025
-
 // Package s3 provides a treeview.Tree constructor dedicated to AWS S3.
 package s3
 
@@ -53,7 +50,7 @@ func NewTreeFromS3(ctx context.Context, itf *InputTreeFromS3,
 	return tree, nil
 }
 
-/// NewTreeUniversal creates a new tree structure based on files fetched from either a local directory or an S3 path,
+// / NewTreeUniversal creates a new tree structure based on files fetched from either a local directory or an S3 path,
 // using configurable options.
 // Returns a pointer to a Tree structure or an error if an issue occurs during tree creation.
 //
@@ -91,7 +88,6 @@ func buildFileSystemTreeForS3(ctx context.Context, itf *InputTreeFromS3,
 	}
 	return []*treeview.Node[treeview.FileInfo]{rootNode}, nil
 }
-
 
 // isS3 checks whether `path` is in S3.
 func isS3(path string) bool {

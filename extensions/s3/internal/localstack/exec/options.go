@@ -1,9 +1,3 @@
-// v0.1.0
-// Author: wunderbarb
-// Aug 2024
-
-// Package exec provides a set of system-related functions such a Run that runs an application, grpc settings, or
-// universal that operates files and objects seamlessly.
 package exec
 
 // options is the structure managing the options of the function Run.

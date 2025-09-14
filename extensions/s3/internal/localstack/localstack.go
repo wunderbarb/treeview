@@ -1,15 +1,9 @@
-// v0.9.0
-// Author: wunderbarb
-// Sep 2025
-
 package localstack
 
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -45,14 +39,14 @@ func CallSilent(args ...string) ([]byte, error) {
 
 // CreateBucket creates the bucket `bktName` on the localstack.
 // For testing purpose exclusively.
-// It supports option WithNoErrorIfExist.
+// It supports the option WithNoErrorIfExist.
 func CreateBucket(bktName string, opt ...Option) error {
 	return CreateBucketAt(bktName, DefaultRegion, opt...)
 }
 
 // CreateBucketAt creates the bucket `bktName` on the localstack in the AWS region.
 // For testing purpose exclusively.
-// It supports option WithNoErrorIfExist.
+// It supports the option WithNoErrorIfExist.
 func CreateBucketAt(bktName string, region string, opt ...Option) error {
 	b := parse(bktName)
 	if !IsBucketNameValid(b) {
@@ -148,15 +142,6 @@ func PutObject(objectPath string, source string) error {
 	}
 	_, err := Call("s3", "cp", "--region", DefaultRegion, source, objectPath)
 	return err
-}
-
-// SetEndPointURLForLambda sets the endpoint URL for the localstack to a different value than
-// "--endpoint-url=http://localhost:4566" to be used in localstack lambda.  It is necessary to
-// set the endpoint URL for the lambda function to be able to use the localstack S3.
-//
-// See https://levelup.gitconnected.com/aws-run-an-s3-triggered-lambda-locally-using-localstack-ac05f03dc896
-func SetEndPointURLForLambda() {
-	_endpointURL = fmt.Sprintf("--endpoint-url=http://%s:4566", os.Getenv("LOCALSTACK_HOSTNAME"))
 }
 
 // parse returns the bucket name

@@ -1,7 +1,3 @@
-// v0.1.1
-// Author: wunderbarb
-// Sep 2025
-
 package config
 
 import (

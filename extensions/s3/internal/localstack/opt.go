@@ -1,7 +1,3 @@
-// v0.2.1
-// Author: wunderbarb
-//  Jan 2024
-
 package localstack
 
 import "encoding/json"
@@ -13,7 +9,7 @@ type options struct {
 	noErrIfExist bool
 }
 
-// Option allows to parameterize function
+// Option allows parameterizing function
 type Option func(opts *options)
 
 func collectOptions(opts ...Option) *options {

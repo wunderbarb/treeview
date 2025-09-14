@@ -1,14 +1,14 @@
-// v0.1.12
-// Author: wunderbarb
-// Sep 2025
-
 package localstack
 
 import (
 	"math/rand/v2"
-	"os"
 	"path/filepath"
 	"testing"
+)
+
+var (
+	// `sample100K.golden` is a 100K-byte file with random bytes.
+	src = filepath.Join("..", "testfixtures", "sample100K.golden")
 )
 
 func TestMain(m *testing.M) {
@@ -61,12 +61,10 @@ func TestPutObject(t *testing.T) {
 	isPanic(CreateBucket(bkt))
 	defer func() { _ = DeleteBucket(bkt) }()
 
-	hDir, err := os.UserHomeDir()
-	isPanic(err)
-	if err = PutObject("s3://"+bkt+"/test", filepath.Join(hDir, "Dev", "golden", "sample100K.golden")); err != nil {
+	if err := PutObject("s3://"+bkt+"/test", src); err != nil {
 		t.Fatal(err)
 	}
-	if err = PutObject("s3://"+bkt+"/test", filepath.Join(hDir, "Dev", "golden", "sample100K.golden")); err != nil {
+	if err := PutObject("s3://"+bkt+"/test", src); err != nil {
 		t.Error(err)
 	}
 }
@@ -74,30 +72,10 @@ func TestPutObject(t *testing.T) {
 func TestDeleteBucket(t *testing.T) {
 	bkt := "tst" + randomID()
 	isPanic(CreateBucket(bkt))
-	hDir, _ := os.UserHomeDir()
-	isPanic(PutObject("s3://"+bkt+"/test", filepath.Join(hDir, "Dev", "golden", "sample100K.golden")))
+	isPanic(PutObject("s3://"+bkt+"/test", src))
 
 	if err := DeleteBucket(bkt); err != nil {
 		t.Error(err)
-	}
-}
-
-func TestSetEndPointURLForLambda(t *testing.T) {
-	const key = "LOCALSTACK_HOSTNAME"
-
-	adr := "127.27.0.2"
-	isPanic(os.Setenv(key, adr))
-	defer func() {
-		_ = os.Unsetenv(key)
-		_endpointURL = "--endpoint-url=http://localhost:4566"
-	}()
-
-	SetEndPointURLForLambda()
-	if "--endpoint-url=http://"+adr+":4566" != _endpointURL {
-		t.Error("should be equal")
-	}
-	if GetEndPointURL() != "http://"+adr+":4566" {
-		t.Error("should be equal")
 	}
 }
 
