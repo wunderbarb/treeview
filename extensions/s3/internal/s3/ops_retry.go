@@ -1,6 +1,6 @@
 // v0.1.1
 // Author: wunderbarb
-//  Jul 2025
+// Sep 2025
 
 package s3
 
@@ -25,6 +25,6 @@ func hasAccessWithRetry(ctx context.Context, path string, opts ...Option) bool {
 
 func getRetryPolicy(opts ...Option) retrypolicy.RetryPolicy[any] {
 	o := collectOptions(opts...)
-	retryPolicy := retrypolicy.Builder[any]().WithMaxRetries(o.retryMaxAttempt).WithDelay(o.retryLapse).Build()
+	retryPolicy := retrypolicy.NewBuilder[any]().WithMaxRetries(o.retryMaxAttempt).WithDelay(o.retryLapse).Build()
 	return retryPolicy
 }

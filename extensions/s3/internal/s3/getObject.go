@@ -1,6 +1,6 @@
 // v0.2.13
 // Author: wunderbarb
-//  Jul 2024
+// Sep 2025
 
 package s3
 
@@ -48,7 +48,7 @@ func getObject1(ctx context.Context, c getObjecter, path string, opts ...Option)
 		Bucket: b,
 		Key:    p,
 	}
-	r1 := retrypolicy.Builder[any]().WithMaxRetries(o.retryMaxAttempt).WithDelay(o.retryLapse).
+	r1 := retrypolicy.NewBuilder[any]().WithMaxRetries(o.retryMaxAttempt).WithDelay(o.retryLapse).
 		HandleIf(isRetryableError).Build()
 	a, err := failsafe.Get(func() (any, error) {
 		return c.GetObject(ctx, goi)
