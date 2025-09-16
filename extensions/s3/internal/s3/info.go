@@ -13,6 +13,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	_cS3URI = "s3://"
+)
+
 // Base returns the last element of `path`.
 // Trailing path separators are removed before extracting the last element.
 // If the path is empty, Base returns "."
@@ -62,6 +66,20 @@ func IsDir(ctx context.Context, path string, opts ...Option) bool {
 		token = lov2o.NextContinuationToken
 	}
 	return false
+}
+
+// Parse returns the bucket name and the key of `path`
+func Parse(path string) (string, string) {
+	const (
+		cNumEle = 2
+	)
+	path = strings.TrimPrefix(path, _cS3URI)
+	p := strings.SplitAfterN(path, "/", cNumEle)
+	p[0] = strings.TrimSuffix(p[0], "/")
+	if len(p) == 1 {
+		return p[0], ""
+	}
+	return p[0], p[1]
 }
 
 // InfoDir holds information about S3 repertory.
@@ -261,4 +279,9 @@ func getListPossiblyRecurse(ctx context.Context, path string, recurse bool, opts
 		token = lov2o.NextContinuationToken
 	}
 	return objects, commonPrefixes, nil
+}
+
+func parsePtr(path string) (*string, *string) {
+	a, b := Parse(path)
+	return aws.String(a), aws.String(b)
 }

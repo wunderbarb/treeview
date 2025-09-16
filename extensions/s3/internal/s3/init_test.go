@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	_myTestBucket = "wunderbarb.example.com"
+	_myTestBucket = "example.com"
 	_cS3          = _cS3URI + _myTestBucket
 	_cs3Testdata  = _cS3 + "/testdata"
 	_c100K        = "sample100K.golden"
-	_c1M          = "sample1M.golden1"
-	_c1Mg         = "sample1M.golden"
+	_c1M          = "sample1M.golden"
+	_c1Mg         = "sample1M.golden1"
 	_cGolden100K  = _cs3Testdata + "/golden/" + _c100K
 	_cGolden1M    = _cs3Testdata + "/golden/" + _c1Mg
 	K             = 1024
@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 	isPanic(localstack.Use())
 	defer func() { _ = localstack.UseNot() }()
 
-	_goldenDirPath = filepath.Join("internal", "testfixtures")
+	_goldenDirPath = filepath.Join("..", "testfixtures")
 	_ = localstack.CreateBucket(_myTestBucket, localstack.WithNoErrorIfExist())
 	// sample100K.golden (resp. sample1M.golden) is a 100K (resp. 1M) random byte file used for test purpose.
 	_ = localstack.PutObject(_cGolden100K, filepath.Join(_goldenDirPath, _c100K))

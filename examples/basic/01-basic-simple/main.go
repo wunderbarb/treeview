@@ -8,18 +8,18 @@ import (
 	"github.com/Digital-Shane/treeview/examples/shared"
 )
 
-// //////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 //   Simple Tree Example
-// //////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
 func main() {
 	shared.ClearTerminal()
 	fmt.Println("Basic Tree With Default Formatting")
 	// Create nodes representing a basic tree structure
 	root := shared.CreateBasicTreeNodes()
-
 	// Create tree with default options
 	tree := treeview.NewTree([]*treeview.Node[string]{root}, treeview.WithExpandAll[string]())
+
 	// Render the tree to a string & print it
 	output, _ := tree.Render(context.Background())
 	fmt.Println(output)

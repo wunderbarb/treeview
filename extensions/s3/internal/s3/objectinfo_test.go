@@ -20,6 +20,9 @@ func TestInfo1(t *testing.T) {
 	if oi.Mode() != fs.ModeDir|defaultMode {
 		t.Errorf("expected %v got %v", fs.ModeDir|defaultMode, oi.Mode())
 	}
+	if oi.Bucket() != _myTestBucket {
+		t.Errorf("expected %v got %v", _myTestBucket, oi.Bucket())
+	}
 
 	oi, err = Info(context.Background(), _cS3)
 	if err != nil {

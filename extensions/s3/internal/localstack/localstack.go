@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/Digital-Shane/treeview/extensions/s3/internal/config"
 	"github.com/Digital-Shane/treeview/extensions/s3/internal/localstack/exec"
 )
 
@@ -16,7 +18,29 @@ const (
 	DefaultRegion = "us-west-2"
 	// Endpoint is the localstack endpoint.
 	Endpoint = "http://localhost:4566"
+	// Env is the environment variable name for the localstack use.  If set, the aws
+	// library uses the localstack emulator.  The preferred way to set this variable is to use
+	// `localstack.Use()` and `localstack.UseNot()`.
+	Env = config.Env
 )
+
+// InUse returns true if the application uses the localstack emulator.  LocalStack may run but not used by
+// the application.
+func InUse() bool {
+	return os.Getenv(Env) != ""
+}
+
+// Use indicates that the localstack emulator should be used.
+func Use() error {
+	config.ClearCached()
+	return os.Setenv(Env, "true")
+}
+
+// UseNot indicates that the localstack emulator should not be used anymore.
+func UseNot() error {
+	config.ClearCached()
+	return os.Unsetenv(Env)
+}
 
 const _localstackURL = "https://localhost.localstack.cloud:4566"
 
@@ -105,11 +129,6 @@ func DeleteBucketAt(bktName string, region string) error {
 	// delete the emptied bucket
 	_, err = Call("s3api", "delete-bucket", "--bucket", b, "--region", region)
 	return err
-}
-
-// GetEndPointURL returns the current endpoint URL of the localstack.
-func GetEndPointURL() string {
-	return strings.TrimPrefix(_endpointURL, "--endpoint-url=")
 }
 
 // IsBucketNameValid returns true if the bucket name is syntactically valid.

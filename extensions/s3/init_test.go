@@ -1,7 +1,3 @@
-// v0.1.2
-// Author: wunderbarb
-// Sep 2025
-
 package s3
 
 import (
@@ -13,7 +9,7 @@ import (
 )
 
 const (
-	_myTestBucket = "wunderbarb.example.com"
+	_myTestBucket = "example.com"
 	_cS3          = _cS3URI + _myTestBucket
 	_cS3URI       = "s3://"
 	_cs3Testdata  = _cS3 + "/testdata"

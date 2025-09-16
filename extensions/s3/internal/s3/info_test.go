@@ -14,7 +14,7 @@ func Test_ReadDir1(t *testing.T) {
 		minLength  int
 		contain    []string
 	}{
-		{_cs3Testdata + "/golden", true, 2, []string{_c100K, _c1M}},
+		{_cs3Testdata + "/golden", true, 2, []string{_c100K, _c1Mg}},
 		{_cs3Testdata, true, 1, []string{"golden"}},
 		{"badBucket/golden", false, 0, nil},
 	}

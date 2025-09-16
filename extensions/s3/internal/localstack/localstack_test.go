@@ -24,7 +24,7 @@ func TestIsRunning(t *testing.T) {
 }
 
 func TestCreateBucket(t *testing.T) {
-	bkt := "tst" + randomID()
+	bkt := "tst" + randomSmallCapsID()
 	if err := CreateBucket(bkt); err != nil {
 		t.Fatal(err)
 	}
@@ -40,13 +40,13 @@ func TestCreateBucket(t *testing.T) {
 	if err := DeleteBucket("s3://bad"); err == nil {
 		t.Error("should generate an error")
 	}
-	if err := CreateBucket("tst" + randomID()); err == nil {
+	if err := CreateBucket("tstA"); err == nil {
 		t.Error("should generate an error")
 	}
 }
 
 func TestCreateBucketAt(t *testing.T) {
-	bkt := "tst" + randomID()
+	bkt := "tst" + randomSmallCapsID()
 	const cRegion = "us-west-2"
 	if err := CreateBucketAt(bkt, cRegion); err != nil {
 		t.Fatal(err)
@@ -57,7 +57,7 @@ func TestCreateBucketAt(t *testing.T) {
 }
 
 func TestPutObject(t *testing.T) {
-	bkt := "tst" + randomID()
+	bkt := "tst" + randomSmallCapsID()
 	isPanic(CreateBucket(bkt))
 	defer func() { _ = DeleteBucket(bkt) }()
 
@@ -70,12 +70,32 @@ func TestPutObject(t *testing.T) {
 }
 
 func TestDeleteBucket(t *testing.T) {
-	bkt := "tst" + randomID()
+	bkt := "tst" + randomSmallCapsID()
 	isPanic(CreateBucket(bkt))
 	isPanic(PutObject("s3://"+bkt+"/test", src))
 
 	if err := DeleteBucket(bkt); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestUseNot(t *testing.T) {
+	defer func() { _ = Use() }()
+
+	if InUse() == false {
+		t.Fatal("InUse() should return true")
+	}
+	if err := UseNot(); err != nil {
+		t.Fatalf("UseNot() should not return error, but got %v", err)
+	}
+	if InUse() == true {
+		t.Error("UseNot() should return false")
+	}
+	if err := Use(); err != nil {
+		t.Fatalf("Use should not return error, but got %v", err)
+	}
+	if InUse() == false {
+		t.Fatal("InUse() should return true")
 	}
 }
 
@@ -85,12 +105,11 @@ func isPanic(err error) {
 	}
 }
 
-// randomID returns a random 16-character, alphanumeric, ID.
-func randomID() string {
+func randomSmallCapsID() string {
 	const sizeID = 16
 	size := sizeID
 	var buffer []byte
-	choice := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890")
+	choice := []byte("abcdefghijklmnopqrstuvwxyz01234567890")
 	choiceSize := len(choice)
 	for i := 0; i < size; i++ {
 		// generates the characters

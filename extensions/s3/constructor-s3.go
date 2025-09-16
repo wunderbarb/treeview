@@ -3,26 +3,11 @@ package s3
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/Digital-Shane/treeview"
 	"github.com/Digital-Shane/treeview/extensions/s3/internal/s3"
 )
-
-// ErrNotYetSupported indicates that a feature or functionality is not currently supported.
-var ErrNotYetSupported = errors.New("not yet supported")
-
-// InputTreeFromS3 is the structure that defines the S3 URI to explore.
-type InputTreeFromS3 struct {
-	// Path is the S3 URI in the format s3://<bucket>/<Key> or s3://<bucket>/
-	Path string
-	// Profile is the AWS profile to use.  If not defined, it uses the default profile.
-	Profile string
-	// determines whether symbolic links should be followed during traversal.
-	FollowSymlinks bool
-}
 
 // NewTreeFromS3 creates a new tree structure based on files fetched from an S3 path, using configurable options.
 // Returns a pointer to a Tree structure or an error if an issue occurs during tree creation.
@@ -34,15 +19,12 @@ type InputTreeFromS3 struct {
 //   - treeview.WithExpandFunc:   Sets initial expansion state for nodes
 //   - treeview.WithTraversalCap: Limits total nodes processed (returns a partial tree + error if exceeded)
 //   - treeview.WithProgressCallback: Invoked after each filesystem entry is processed (breadth-first per directory)
-func NewTreeFromS3(ctx context.Context, itf *InputTreeFromS3,
+func NewTreeFromS3(ctx context.Context, path string, profile string,
 	opts ...treeview.Option[treeview.FileInfo]) (*treeview.Tree[treeview.FileInfo], error) {
-	if itf.FollowSymlinks {
-		return nil, ErrNotYetSupported
-	}
 	cfg := treeview.NewMasterConfig(opts, treeview.WithProvider[treeview.FileInfo](treeview.NewDefaultNodeProvider(
 		treeview.WithFileExtensionRules[treeview.FileInfo](),
 	)))
-	nodes, err := buildFileSystemTreeForS3(ctx, itf, cfg)
+	nodes, err := buildFileSystemTreeForS3(ctx, path, profile, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", treeview.ErrFileSystem, err)
 	}
@@ -50,49 +32,24 @@ func NewTreeFromS3(ctx context.Context, itf *InputTreeFromS3,
 	return tree, nil
 }
 
-// / NewTreeUniversal creates a new tree structure based on files fetched from either a local directory or an S3 path,
-// using configurable options.
-// Returns a pointer to a Tree structure or an error if an issue occurs during tree creation.
-//
-// Supported options:
-// Build options:
-//   - treeview.WithFilterFunc:   Filters items during tree building
-//   - treeview.WithMaxDepth:     Limits tree depth during construction
-//   - treeview.WithExpandFunc:   Sets initial expansion state for nodes
-//   - treeview.WithTraversalCap: Limits total nodes processed (returns a partial tree + error if exceeded)
-//   - treeview.WithProgressCallback: Invoked after each filesystem entry is processed (breadth-first per directory)
-func NewTreeUniversal(ctx context.Context, itf *InputTreeFromS3,
-	opts ...treeview.Option[treeview.FileInfo]) (*treeview.Tree[treeview.FileInfo], error) {
-	if isS3(itf.Path) {
-		return NewTreeFromS3(ctx, itf, opts...)
-	}
-	return treeview.NewTreeFromFileSystem(ctx, itf.Path, itf.FollowSymlinks, opts...)
-}
-
-func buildFileSystemTreeForS3(ctx context.Context, itf *InputTreeFromS3,
+func buildFileSystemTreeForS3(ctx context.Context, path string, profile string,
 	cfg *treeview.MasterConfig[treeview.FileInfo]) ([]*treeview.Node[treeview.FileInfo], error) {
-	if itf.Profile == "" {
-		itf.Profile = "default"
+	if profile == "" {
+		profile = "default"
 	}
-	info, err := s3.Info(ctx, itf.Path, s3.WithProfile(itf.Profile))
+	info, err := s3.Info(ctx, path, s3.WithProfile(profile))
 	if err != nil {
-		return nil, pathError(treeview.ErrPathResolution, itf.Path, err)
+		return nil, pathError(treeview.ErrPathResolution, path, err)
 	}
 	total := 1
-	rootNode := treeview.NewFileSystemNode(itf.Path, info)
+	rootNode := treeview.NewFileSystemNode(path, info)
 	cfg.HandleExpansion(rootNode)
 	if info.IsDir() {
-		if err := scanDirS3(ctx, rootNode, 0, itf.FollowSymlinks, cfg, &total); err != nil {
+		if err := scanDirS3(ctx, rootNode, 0, false, cfg, &total); err != nil {
 			return nil, err
 		}
 	}
 	return []*treeview.Node[treeview.FileInfo]{rootNode}, nil
-}
-
-// isS3 checks whether `path` is in S3.
-func isS3(path string) bool {
-	const cS3Prefix = "s3://"
-	return strings.HasPrefix(path, cS3Prefix)
 }
 
 // scanDirS3 scans a bucket or key and its subdirectories, creating Node[treeview.FileInfo] for each entry.

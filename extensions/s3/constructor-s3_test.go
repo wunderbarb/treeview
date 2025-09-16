@@ -1,7 +1,3 @@
-// v0.1.1
-// Author: wunderbarb
-//  Sep 2025
-
 package s3
 
 import (
@@ -15,30 +11,26 @@ import (
 
 func TestNewTreeFromS3(t *testing.T) {
 	tests := []struct {
-		path              string
-		symLink           bool
+		path string
+
 		opt               []treeview.Option[treeview.FileInfo]
 		expSuccess        bool
 		numberNodes       int
 		numberNodesLevel1 int
 		numberNodesLevel2 int
 	}{
-		{_cs3Testdata, false, nil, true,
-			1, 1, 3},
-		{s3.Join(_cs3Testdata, "golden", "recurse"), false, nil, true,
+		{_cs3Testdata, nil, true, 1, 1, 3},
+		{s3.Join(_cs3Testdata, "golden", "recurse"), nil, true,
 			1, 1, 0},
-		{_cS3, false, []treeview.Option[treeview.FileInfo]{treeview.WithMaxDepth[treeview.FileInfo](2)},
+		{_cS3, []treeview.Option[treeview.FileInfo]{treeview.WithMaxDepth[treeview.FileInfo](2)},
 			true, 1, 1, 1},
-		{_cs3Testdata, false,
+		{_cs3Testdata,
 			[]treeview.Option[treeview.FileInfo]{treeview.WithFilterFunc[treeview.FileInfo](func(f treeview.FileInfo) bool {
 				return !strings.HasSuffix(f.Path, "golden1")
 			})},
-			true, 1, 1, 2},
-		{"bad", false, nil, false,
+			true, 1, 1, 2}, {"bad", nil, false,
 			0, 0, 0},
-		{_cs3Testdata, true, nil, false,
-			0, 0, 0},
-		{_cs3Testdata, false, []treeview.Option[treeview.FileInfo]{treeview.WithTraversalCap[treeview.FileInfo](3)},
+		{_cs3Testdata, []treeview.Option[treeview.FileInfo]{treeview.WithTraversalCap[treeview.FileInfo](3)},
 			false, 0, 0, 0},
 	}
 	for ii, tt := range tests {
@@ -46,8 +38,7 @@ func TestNewTreeFromS3(t *testing.T) {
 		if tt.opt != nil {
 			opts = tt.opt
 		}
-		tr, err := NewTreeFromS3(context.Background(), &InputTreeFromS3{Path: tt.path, FollowSymlinks: tt.symLink},
-			opts...)
+		tr, err := NewTreeFromS3(context.Background(), tt.path, "", opts...)
 		if tt.expSuccess != (err == nil) {
 			t.Fatalf("expected success %v, got %v", tt.expSuccess, err)
 		}
