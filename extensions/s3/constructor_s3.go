@@ -34,9 +34,6 @@ func NewTreeFromS3(ctx context.Context, path string, profile string,
 
 func buildFileSystemTreeForS3(ctx context.Context, path string, profile string,
 	cfg *treeview.MasterConfig[treeview.FileInfo]) ([]*treeview.Node[treeview.FileInfo], error) {
-	if profile == "" {
-		profile = "default"
-	}
 	info, err := s3.Info(ctx, path, s3.WithProfile(profile))
 	if err != nil {
 		return nil, pathError(treeview.ErrPathResolution, path, err)

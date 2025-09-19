@@ -6,10 +6,7 @@ This module provides a TreeView constructor for AWS S3 buckets.
 
 ```go
 	// Create the tree with default options
-	tree, err := s3.NewTreeFromS3(context.Background(), &s3.InputTreeFromS3{
-		Path:      "s3://my-bucket-name",
-		Profile:   "default",
-        })
+	tree, err := s3.NewTreeFromS3(context.Background(),  "s3://my-bucket-name",  "default")
 	if err != nil {
 		log.Fatal(err)
 	}

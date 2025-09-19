@@ -3,7 +3,7 @@ package s3
 import (
 	"context"
 	"io/fs"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 
@@ -190,14 +190,14 @@ func (de *DirEntry) Type() fs.FileMode {
 // Function list method lists all the keys in the path.
 // It returns a slice of `DirEntry`. It hides the pagination, i.e., it may return more than 1,000 objects.
 // It is not recursive but lists the directories.
-func list(ctx context.Context, path string, opts ...Option) ([]DirEntry, error) {
-	objects, err := getList(ctx, path, opts...)
+func list(ctx context.Context, pth string, opts ...Option) ([]DirEntry, error) {
+	objects, err := getList(ctx, pth, opts...)
 	if err != nil {
 		return nil, err
 	}
 	knownDirs := make(map[string]bool) // to store the already detected subdirectories.
 	var list []DirEntry
-	b, dir := Parse(path)
+	b, dir := Parse(pth)
 	for _, o := range objects {
 		oWithoutPrefix := strings.TrimPrefix(*o.Key, strings.TrimSuffix(dir, "/")+"/")
 		el := strings.Split(oWithoutPrefix, "/")
@@ -212,7 +212,7 @@ func list(ctx context.Context, path string, opts ...Option) ([]DirEntry, error) 
 					name:         *o.Key,
 					dir:          false,
 				},
-				size: 0,
+				size: *o.Size,
 			}
 			id.bucket = b
 			list = append(list, id)
@@ -222,14 +222,14 @@ func list(ctx context.Context, path string, opts ...Option) ([]DirEntry, error) 
 				continue // the subdirectory is already known
 			}
 			knownDirs[el[0]] = true // store the name of the subdirectory to avoid a second time.
-			trn := filepath.Join(b, dir, el[0])
+			trn := path.Join(b, dir, el[0])
 			id := DirEntry{
 				InfoDir: InfoDir{
 					creationDate: *o.LastModified,
 					name:         trn,
 					dir:          true,
 				},
-				size: *o.Size,
+				size: 0,
 			}
 			id.bucket = b
 			list = append(list, id)

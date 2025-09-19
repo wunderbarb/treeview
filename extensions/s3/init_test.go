@@ -1,8 +1,7 @@
 package s3
 
 import (
-	"os"
-	"path/filepath"
+	"path"
 	"testing"
 
 	"github.com/Digital-Shane/treeview/extensions/s3/internal/localstack"
@@ -27,9 +26,6 @@ func TestMain(m *testing.M) {
 	isPanic(localstack.Use())
 	defer func() { _ = localstack.UseNot() }()
 
-	dir, err := os.UserHomeDir()
-	isPanic(err)
-
 	// s3://<_myTestBucket>
 	//    |- testdata
 	//       |-   golden
@@ -37,11 +33,11 @@ func TestMain(m *testing.M) {
 	//          |   |- <_c100K>
 	//          |- <_c100K>
 	//          |- <_c1M>
-	_goldenDirPath := filepath.Join(dir, "Dev", "golden")
+	_goldenDirPath := path.Join("internal", "testfixtures")
 	_ = localstack.CreateBucket(_myTestBucket, localstack.WithNoErrorIfExist())
-	_ = localstack.PutObject(_cGolden100K, filepath.Join(_goldenDirPath, _c100K))
-	_ = localstack.PutObject(_cGolden1M, filepath.Join(_goldenDirPath, _c1M))
-	_ = localstack.PutObject(_cs3Testdata+"/golden/recurse/"+_c100K, filepath.Join(_goldenDirPath, _c100K))
+	_ = localstack.PutObject(_cGolden100K, path.Join(_goldenDirPath, _c100K))
+	_ = localstack.PutObject(_cGolden1M, path.Join(_goldenDirPath, _c1M))
+	_ = localstack.PutObject(_cs3Testdata+"/golden/recurse/"+_c100K, path.Join(_goldenDirPath, _c100K))
 	m.Run()
 }
 

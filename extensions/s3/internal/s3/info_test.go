@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func Test_ReadDir1(t *testing.T) {
+func Test_ReadDir(t *testing.T) {
 	tests := []struct {
 		path       string
 		expSuccess bool
@@ -45,6 +45,12 @@ func Test_ReadDir1(t *testing.T) {
 	}
 	if a[0].Name() != _c100K {
 		t.Errorf("expected %s to be %s", a[0].Name(), _c100K)
+	}
+
+	s, err := a[0].Info()
+	isPanic(err)
+	if s.Size() != int64(100*K) {
+		t.Errorf("expected %d to be %d", s.Size(), 100*K)
 	}
 }
 
