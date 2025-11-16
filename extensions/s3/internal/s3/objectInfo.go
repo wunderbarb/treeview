@@ -3,7 +3,13 @@ package s3
 import (
 	"context"
 	"io/fs"
+	"strings"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/pkg/errors"
 )
 
 const defaultMode = 0o755
@@ -73,6 +79,14 @@ func (oi *ObjectInfo) ModTime() time.Time {
 	return oi.lastModified
 }
 
+// Info implements the interface fs.FileInfo.
+func (oi *ObjectInfo) Info() (fs.FileInfo, error) {
+	if oi == nil {
+		return nil, fs.ErrNotExist
+	}
+	return oi, nil
+}
+
 // IsDir determines if the given ObjectInfo represents a directory based on its bucket and key attributes.
 func (oi *ObjectInfo) IsDir() bool {
 	return oi.isDir
@@ -108,4 +122,84 @@ func (oi *ObjectInfo) Size() int64 {
 // or "GLACIER_IR".
 func (oi *ObjectInfo) StorageClass() string {
 	return oi.storageClass
+}
+
+// ListAllObjectsAndPrefixes recursively lists all objects and prefixes in the specified path and returns a slice of
+// ObjectInfo.  It does not list the prefixes.
+// It hides the pagination, i.e., it may return more than 1,000 objects.
+func ListAllObjectsAndPrefixes(ctx context.Context, path string, opts ...Option) ([]ObjectInfo, error) {
+	return getListObjectsRecurse(ctx, path, false, opts...)
+}
+
+func getListObjectsRecurse(ctx context.Context, path string, withoutDir bool, opts ...Option) ([]ObjectInfo, error) {
+	b, p := parsePtr(path)
+	c, err := newClientForBucket(*b, opts...)
+	if err != nil {
+		return nil, err
+	}
+	var ois []ObjectInfo
+	commonPrefixes := map[string]bool{}
+	prefix := strings.TrimSuffix(*p, "/") + "/"
+	if prefix == "/" { // when starting from the root of the bucket
+		prefix = ""
+	}
+	var token *string
+	token = nil
+	for {
+		lov2i := &awsS3.ListObjectsV2Input{
+			Bucket:            b,
+			Prefix:            aws.String(prefix),
+			ContinuationToken: token,
+		}
+		lov2o, err := c.ListObjectsV2(ctx, lov2i)
+		if err != nil {
+			return nil, errors.Wrap(err, "ListObjectsV2")
+		}
+		for _, content := range lov2o.Contents {
+			if !strings.HasSuffix(*content.Key, "/") {
+				ois = append(ois, typesObjectToObjectInfo(&content, *b))
+			}
+			if withoutDir {
+				continue
+			}
+			key := strings.TrimPrefix(*content.Key, prefix)
+			l := strings.Split(key, "/")
+			if len(l) == 1 {
+				continue
+			}
+			l0 := ""
+			for _, l1 := range l[:len(l)-1] {
+				l0 += l1
+				_, ok := commonPrefixes[l0]
+				if !ok {
+					commonPrefixes[l0] = true
+					ois = append(ois, ObjectInfo{
+						bucket:       *b,
+						key:          prefix + l0 + "/",
+						lastModified: time.Time{},
+						size:         0,
+						storageClass: "",
+						isDir:        true,
+					})
+				}
+				l0 += "/"
+			}
+		}
+		if !*lov2o.IsTruncated {
+			break
+		}
+		token = lov2o.NextContinuationToken
+	}
+	return ois, nil
+}
+
+func typesObjectToObjectInfo(to *types.Object, bucket string) ObjectInfo {
+	return ObjectInfo{
+		bucket:       bucket,
+		key:          *to.Key,
+		lastModified: *to.LastModified,
+		size:         *to.Size,
+		storageClass: string(to.StorageClass),
+		isDir:        false,
+	}
 }

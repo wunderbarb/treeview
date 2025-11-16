@@ -2,10 +2,12 @@ package s3
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/Digital-Shane/treeview"
+	"github.com/Digital-Shane/treeview/extensions/s3/internal/localstack"
 	"github.com/Digital-Shane/treeview/extensions/s3/internal/s3"
 )
 
@@ -58,5 +60,14 @@ func TestNewTreeFromS3(t *testing.T) {
 					len(tr.Nodes()[0].Children()), ii+1)
 			}
 		}
+	}
+}
+
+func Test_real(t *testing.T) {
+	localstack.UseNot()
+	os.Setenv("AWS_PROFILE", "dptitrous2")
+	_, err := NewTreeFromS3(context.Background(), "s3://dptit2/attack", "")
+	if err != nil {
+		t.Fatal(err)
 	}
 }
